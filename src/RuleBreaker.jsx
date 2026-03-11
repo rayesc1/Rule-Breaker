@@ -444,6 +444,21 @@ export default function RuleBreaker() {
   // ── Validate puzzle on mount ──────────────────────────────────────────────
   useEffect(() => { validatePuzzle(DAILY); }, []);
 
+  // ── Lock body scroll during game, unlock otherwise ───────────────────────
+  useEffect(() => {
+    if (screen === SCREENS.GAME) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [screen]);
+
   // ── Rule countdown screen ─────────────────────────────────────────────────
   useEffect(() => {
     if (screen !== SCREENS.RULE) return;
@@ -772,7 +787,7 @@ export default function RuleBreaker() {
           textAlign: "center", padding: "2rem", maxWidth: 460, margin: "0 auto",
         }}>
           <div style={{ ...dim, marginBottom: "0.5rem" }}>{roundData.label}</div>
-          <div style={{ ...dim, color: "#666", marginBottom: "2rem" }}>TODAY'S RULE</div>
+          <div style={{ ...dim, color: "#888", marginBottom: "2rem" }}>TODAY'S RULE</div>
           <div style={{ border: "1px solid #222", padding: "2.5rem 2rem", position: "relative", width: "100%" }}>
             <div style={{
               position: "absolute", top: -1, left: 0, height: 2,
@@ -804,7 +819,7 @@ export default function RuleBreaker() {
             {/* Live timer */}
             <div style={{
               textAlign: "center", marginBottom: "0.75rem",
-              color: "#444", fontSize: "0.7rem", letterSpacing: "0.2em",
+              color: "#C0C0D0", fontSize: "0.7rem", letterSpacing: "0.2em",
               fontVariantNumeric: "tabular-nums",
             }}>
               {formatTime(liveTime)}
@@ -933,7 +948,7 @@ export default function RuleBreaker() {
 
             {/* Counter */}
             <div style={{
-              color: "#666", fontSize: "0.6rem", letterSpacing: "0.2em",
+              color: "#B0B0C0", fontSize: "0.6rem", letterSpacing: "0.2em",
               textAlign: "center", marginTop: "0.75rem",
             }}>
               {currentIndex + 1} / {TOTAL}
@@ -1049,7 +1064,7 @@ export default function RuleBreaker() {
                       brighter = later phase · red border = switch point
                     </div>
                   )}
-                  <div style={{ color: "#444", fontSize: "0.6rem", letterSpacing: "0.15em", marginTop: "0.75rem", textAlign: "right" }}>
+                  <div style={{ color: "#666", fontSize: "0.6rem", letterSpacing: "0.15em", marginTop: "0.75rem", textAlign: "right" }}>
                     TAP TO REVIEW →
                   </div>
                 </div>
