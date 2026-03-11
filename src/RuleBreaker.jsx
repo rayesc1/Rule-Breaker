@@ -811,7 +811,7 @@ export default function RuleBreaker() {
 
             {/* Live timer */}
             <div style={{
-              textAlign: "center", marginBottom: "0.75rem",
+              textAlign: "center", marginBottom: "1.25rem",
               color: "#C0C0D0", fontSize: "0.7rem", letterSpacing: "0.2em",
               fontVariantNumeric: "tabular-nums",
             }}>
@@ -819,7 +819,7 @@ export default function RuleBreaker() {
             </div>
 
             {/* Progress bar */}
-            <div style={{ width: "100%", height: 2, background: "#1A1A24", marginBottom: "0.6rem" }}>
+            <div style={{ width: "100%", height: 2, background: "#1A1A24", marginBottom: "0.75rem" }}>
               <div style={{
                 height: "100%", width: `${progress}%`,
                 background: ruleColor,
@@ -830,7 +830,7 @@ export default function RuleBreaker() {
             {/* Rule text */}
             <div style={{
               color: ruleColor, fontSize: "0.6rem", letterSpacing: "0.15em",
-              marginBottom: "0rem", minHeight: "1rem",
+              marginBottom: "0.75rem", minHeight: "1rem",
               transition: "color 0.3s ease", textAlign: "center",
             }}>
               {ruleText.toUpperCase()}
@@ -841,7 +841,7 @@ export default function RuleBreaker() {
               <>
                 {/* Word display — fixed height, compact */}
                 <div style={{
-                  height: "8rem",
+                  height: "9rem",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <span style={{
@@ -854,14 +854,15 @@ export default function RuleBreaker() {
                   </span>
                 </div>
 
-                {/* Action buttons — tight under word */}
-                <div style={{ display: "flex", gap: "0.75rem" }}>
+                {/* Action buttons */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", width: "100%" }}>
                   <button
                     onClick={() => handleChoice("rulebreak")}
                     style={{
-                      flex: 1, padding: "0.9rem 0.5rem",
+                      padding: "1.1rem 0.5rem",
                       fontFamily: mono, fontWeight: 900,
                       fontSize: "clamp(0.7rem,2.5vw,0.85rem)", letterSpacing: "0.08em",
+                      whiteSpace: "nowrap",
                       background: btnDisabled ? "#150508" : "rgba(255,77,109,0.12)",
                       color: btnDisabled ? "#3A1A20" : "#FF4D6D",
                       border: `1.5px solid ${btnDisabled ? "#2A0A10" : "#FF4D6D"}`,
@@ -874,9 +875,10 @@ export default function RuleBreaker() {
                   <button
                     onClick={() => handleChoice("accept")}
                     style={{
-                      flex: 1, padding: "0.9rem 0.5rem",
+                      padding: "1.1rem 0.5rem",
                       fontFamily: mono, fontWeight: 900,
                       fontSize: "clamp(0.7rem,2.5vw,0.85rem)", letterSpacing: "0.08em",
+                      whiteSpace: "nowrap",
                       background: btnDisabled ? "#050F08" : "rgba(0,255,178,0.08)",
                       color: btnDisabled ? "#0A2A18" : "#00FFB2",
                       border: `1.5px solid ${btnDisabled ? "#0A2018" : "#00FFB2"}`,
@@ -894,14 +896,14 @@ export default function RuleBreaker() {
             {isRound2 && (
               <>
                 {/* Two clickable halves — fixed height */}
-                <div style={{ display: "flex", height: "8rem", border: "1px solid #1E1E2E" }}>
+                <div style={{ display: "flex", height: "11rem", gap: "0.75rem" }}>
                   {["left", "right"].map(side => (
                     <div
                       key={side}
                       onClick={() => handleChoice(side)}
                       style={{
                         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                        borderRight: side === "left" ? "1px solid #1E1E2E" : "none",
+                        border: "1px solid #1E1E2E",
                         background: getSideBg(side),
                         cursor: btnDisabled ? "default" : "pointer",
                         opacity: btnDisabled ? 0.55 : 1,
@@ -909,7 +911,7 @@ export default function RuleBreaker() {
                       }}
                     >
                       <span style={{
-                        fontSize: "clamp(1.1rem,5vw,1.9rem)", fontWeight: 900, letterSpacing: "0.08em",
+                        fontSize: "clamp(1.3rem,5vw,2rem)", fontWeight: 900, letterSpacing: "0.08em",
                         color: getSideColor(side),
                         opacity: (wordVisible || r2Feedback) ? 1 : 0,
                         transition: "opacity 0.08s ease, color 0.08s ease",
@@ -924,7 +926,7 @@ export default function RuleBreaker() {
                 <button
                   onClick={() => handleChoice(null)}
                   style={{
-                    width: "100%", padding: "0.85rem", marginTop: "0.75rem",
+                    width: "100%", padding: "1.1rem", marginTop: "1.25rem",
                     fontFamily: mono, fontWeight: 900,
                     fontSize: "clamp(0.7rem,2.5vw,0.85rem)", letterSpacing: "0.15em",
                     background: btnDisabled ? "#0F0F18" : "rgba(255,255,255,0.04)",
@@ -942,7 +944,7 @@ export default function RuleBreaker() {
             {/* Counter */}
             <div style={{
               color: "#B0B0C0", fontSize: "0.6rem", letterSpacing: "0.2em",
-              textAlign: "center", marginTop: "0.75rem",
+              textAlign: "center", marginTop: "1.25rem",
             }}>
               {currentIndex + 1} / {TOTAL}
             </div>
