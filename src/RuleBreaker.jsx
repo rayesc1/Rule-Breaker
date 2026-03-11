@@ -444,20 +444,7 @@ export default function RuleBreaker() {
   // ── Validate puzzle on mount ──────────────────────────────────────────────
   useEffect(() => { validatePuzzle(DAILY); }, []);
 
-  // ── Lock body scroll during game, unlock otherwise ───────────────────────
-  useEffect(() => {
-    if (screen === SCREENS.GAME) {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, [screen]);
+
 
   // ── Rule countdown screen ─────────────────────────────────────────────────
   useEffect(() => {
@@ -679,7 +666,8 @@ export default function RuleBreaker() {
   return (
     <div style={{
       background: "#0A0A0F", fontFamily: mono,
-      userSelect: "none", position: "relative",
+      userSelect: "none", position: "fixed",
+      inset: 0, overflow: "hidden",
     }}>
       {/* Grain texture */}
       <div style={{
@@ -726,9 +714,10 @@ export default function RuleBreaker() {
       {/* ── INTRO ── */}
       {screen === SCREENS.INTRO && (
         <div style={{
-          minHeight: "100vh", display: "flex", flexDirection: "column",
+          height: "100vh", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           textAlign: "center", padding: "2rem", maxWidth: 420, margin: "0 auto",
+          overflow: "hidden",
         }}>
           <div style={{ ...dim, marginBottom: "1.5rem" }}>
             DAILY #{String(DAILY.day).padStart(3, "0")}
@@ -761,9 +750,10 @@ export default function RuleBreaker() {
       {/* ── ROUND INTRO ── */}
       {screen === SCREENS.ROUND_INTRO && (
         <div style={{
-          minHeight: "100vh", display: "flex", flexDirection: "column",
+          height: "100vh", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           textAlign: "center", padding: "2rem", maxWidth: 420, margin: "0 auto",
+          overflow: "hidden",
         }}>
           <div style={{ ...dim, marginBottom: "2rem" }}>{roundData.label}</div>
           <div style={{ border: "1px solid #222", padding: "2rem 1.75rem", marginBottom: "2.5rem" }}>
@@ -782,9 +772,10 @@ export default function RuleBreaker() {
       {/* ── RULE ── */}
       {screen === SCREENS.RULE && (
         <div style={{
-          minHeight: "100vh", display: "flex", flexDirection: "column",
+          height: "100vh", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           textAlign: "center", padding: "2rem", maxWidth: 460, margin: "0 auto",
+          overflow: "hidden",
         }}>
           <div style={{ ...dim, marginBottom: "0.5rem" }}>{roundData.label}</div>
           <div style={{ ...dim, color: "#888", marginBottom: "2rem" }}>TODAY'S RULE</div>
@@ -808,7 +799,7 @@ export default function RuleBreaker() {
       {/* ── GAME ── */}
       {screen === SCREENS.GAME && !showInversion && (
         <div style={{
-          minHeight: "100vh", overflow: "hidden",
+          height: "100vh", overflow: "hidden",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           padding: "2rem 1.25rem",
@@ -967,9 +958,10 @@ export default function RuleBreaker() {
         const isLast = currentRound === DAILY.rounds.length - 1;
         return (
           <div style={{
-            minHeight: "100vh", display: "flex", flexDirection: "column",
+            height: "100vh", display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             textAlign: "center", padding: "2rem", maxWidth: 420, margin: "0 auto",
+            overflow: "hidden",
           }}>
             <div style={{ ...dim, marginBottom: "1.5rem" }}>{roundData.label} COMPLETE</div>
             <div style={{
@@ -996,7 +988,7 @@ export default function RuleBreaker() {
         const og = overallGrade();
         return (
           <div style={{
-            minHeight: "100vh", maxHeight: "100vh", overflowY: "auto",
+            height: "100vh", overflowY: "auto",
             maxWidth: 480, margin: "0 auto",
             padding: "2rem 2rem 1rem", textAlign: "center",
           }}>
@@ -1089,6 +1081,7 @@ export default function RuleBreaker() {
       })()}
 
       <style>{`
+        html, body { overflow: hidden; height: 100%; }
         @keyframes shrink { from { width: 100%; } to { width: 0%; } }
         @keyframes drain  { from { width: 100%; } to { width: 0%; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
