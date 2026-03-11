@@ -668,6 +668,8 @@ export default function RuleBreaker() {
       background: "#0A0A0F", fontFamily: mono,
       userSelect: "none", position: "fixed",
       inset: 0, overflow: "hidden",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
     }}>
       {/* Grain texture */}
       <div style={{
