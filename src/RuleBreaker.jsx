@@ -798,16 +798,46 @@ export default function RuleBreaker() {
         </div>
       )}
 
+      {/* ── SKIP PUZZLE (testing only) ── */}
+      {screen !== SCREENS.INTRO && screen !== SCREENS.RESULTS && (
+        <button
+          onClick={() => {
+            const next = currentRound + 1;
+            if (next >= DAILY.rounds.length) {
+              setRoundResults(prev => prev.map((r, i) => r || Array(DAILY.rounds[i].total).fill({ correct: true })));
+              setRoundTimes(prev => prev.map(t => t || 12000));
+              setScreen(SCREENS.RESULTS);
+            } else {
+              setRoundResults(prev => { const u = [...prev]; u[currentRound] = Array(DAILY.rounds[currentRound].total).fill({ correct: true }); return u; });
+              setRoundTimes(prev => { const u = [...prev]; u[currentRound] = 12000; return u; });
+              setRoundItems(prev => { const u = [...prev]; u[currentRound] = u[currentRound] || buildItems(DAILY.rounds[currentRound]); return u; });
+              setCurrentRound(next);
+              setScreen(SCREENS.ROUND_INTRO);
+            }
+          }}
+          style={{
+            position: "fixed", top: "1rem", right: "1rem", zIndex: 300,
+            background: "rgba(255,255,255,0.06)", color: "#666",
+            border: "1px solid #333", padding: "0.4rem 0.8rem",
+            fontSize: "0.65rem", letterSpacing: "0.15em",
+            cursor: "pointer", fontFamily: "'Courier New', monospace",
+          }}
+        >
+          SKIP →
+        </button>
+      )}
+
       {/* ── GAME ── */}
       {screen === SCREENS.GAME && !showInversion && (
         <div style={{
           height: "100vh", overflow: "hidden",
+          width: "100%",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           padding: "2rem 1.25rem",
         }}>
           {/* Compact centered game unit */}
-          <div style={{ width: "100%", maxWidth: 600 }}>
+          <div style={{ width: "100%", maxWidth: 600, boxSizing: "border-box" }}>
 
             {/* Live timer */}
             <div style={{
@@ -894,16 +924,19 @@ export default function RuleBreaker() {
 
             {/* ── PAIRS (Round 2) ── */}
             {isRound2 && (
-              <>
-                {/* Two clickable halves — fixed height */}
-                <div style={{ display: "flex", height: "14rem", gap: "1rem" }}>
+              <div style={{ width: "100%" }}>
+                {/* One unified box with center divider — fixed 50/50 split */}
+                <div style={{
+                  display: "flex", height: "14rem",
+                }}>
                   {["left", "right"].map(side => (
                     <div
                       key={side}
                       onClick={() => handleChoice(side)}
                       style={{
-                        flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                        border: "1px solid #1E1E2E",
+                        width: "50%", flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        borderRight: side === "left" ? "1px solid #333" : "none",
                         background: getSideBg(side),
                         cursor: btnDisabled ? "default" : "pointer",
                         opacity: btnDisabled ? 0.55 : 1,
@@ -911,10 +944,11 @@ export default function RuleBreaker() {
                       }}
                     >
                       <span style={{
-                        fontSize: "clamp(1.6rem,5vw,2.8rem)", fontWeight: 900, letterSpacing: "0.08em",
+                        fontSize: "clamp(1rem,3.5vw,2.2rem)", fontWeight: 900, letterSpacing: "0.06em",
                         color: getSideColor(side),
                         opacity: (wordVisible || r2Feedback) ? 1 : 0,
                         transition: "opacity 0.08s ease, color 0.08s ease",
+                        whiteSpace: "nowrap", textAlign: "center", padding: "0 1.5rem",
                       }}>
                         {items[currentIndex]?.[side]}
                       </span>
@@ -922,7 +956,7 @@ export default function RuleBreaker() {
                   ))}
                 </div>
 
-                {/* None! button — tight under pairs */}
+                {/* None! button */}
                 <button
                   onClick={() => handleChoice(null)}
                   style={{
@@ -938,7 +972,7 @@ export default function RuleBreaker() {
                 >
                   NONE!
                 </button>
-              </>
+              </div>
             )}
 
             {/* Counter */}
