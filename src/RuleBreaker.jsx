@@ -509,36 +509,39 @@ export default function RuleBreaker() {
     setButtonsLive(false);
     buttonsLiveRef.current = false;
 
-    // Inversion point?
-    if (invPts.includes(next)) {
-      const newRuleIdx = invPts.indexOf(next) + 1;
-      clearInterval(liveTimerRef.current);
-      setPaused(true);
-      setShowInversion(true);
-      setInversionText(roundData.rules[newRuleIdx]);
-      setTimeout(() => {
-        setShowInversion(false);
-        setPaused(false);
-        // Restart live timer after inversion
-        liveTimerRef.current = setInterval(() => {
-          setLiveTime(Date.now() - roundStartRef.current);
-        }, 100);
-        setCurrentIndex(next);
-      }, INVERSION_MS);
-      return;
-    }
+    // Small gap to let fade-out complete before next word renders
+    setTimeout(() => {
+      // Inversion point?
+      if (invPts.includes(next)) {
+        const newRuleIdx = invPts.indexOf(next) + 1;
+        clearInterval(liveTimerRef.current);
+        setPaused(true);
+        setShowInversion(true);
+        setInversionText(roundData.rules[newRuleIdx]);
+        setTimeout(() => {
+          setShowInversion(false);
+          setPaused(false);
+          // Restart live timer after inversion
+          liveTimerRef.current = setInterval(() => {
+            setLiveTime(Date.now() - roundStartRef.current);
+          }, 100);
+          setCurrentIndex(next);
+        }, INVERSION_MS);
+        return;
+      }
 
-    // Round complete?
-    if (next >= TOTAL) {
-      clearInterval(liveTimerRef.current);
-      const roundTime = Date.now() - roundStartRef.current;
-      setRoundTimes(prev   => { const u = [...prev]; u[currentRound] = roundTime; return u; });
-      setRoundResults(prev => { const u = [...prev]; u[currentRound] = [...resultsRef.current]; return u; });
-      setScreen(SCREENS.ROUND_SUMMARY);
-      return;
-    }
+      // Round complete?
+      if (next >= TOTAL) {
+        clearInterval(liveTimerRef.current);
+        const roundTime = Date.now() - roundStartRef.current;
+        setRoundTimes(prev   => { const u = [...prev]; u[currentRound] = roundTime; return u; });
+        setRoundResults(prev => { const u = [...prev]; u[currentRound] = [...resultsRef.current]; return u; });
+        setScreen(SCREENS.ROUND_SUMMARY);
+        return;
+      }
 
-    setCurrentIndex(next);
+      setCurrentIndex(next);
+    }, 120);
   };
 
   // ── Handle button press ───────────────────────────────────────────────────
