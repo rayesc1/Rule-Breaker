@@ -252,10 +252,10 @@ function ReviewModal({ reviewRound, roundResults, roundItems, setReviewRound }) 
   if (reviewRound === null) return null;
 
   const mono = "'Courier New', monospace";
-  const dim  = { color: "#B0B0C0", fontSize: "0.75rem", letterSpacing: "0.25em" };
+  const dim  = { color: "#B0B0C0", fontSize: "0.9rem", letterSpacing: "0.2em" };
   const btn  = {
     background: "#FF4D6D", color: "#0A0A0F", border: "none",
-    padding: "1rem 2rem", fontSize: "0.85rem", fontWeight: 900,
+    padding: "1.25rem 2rem", fontSize: "1rem", fontWeight: 900,
     letterSpacing: "0.2em", cursor: "pointer", fontFamily: mono, width: "100%",
   };
 
@@ -658,7 +658,7 @@ export default function RuleBreaker() {
 
   const primaryBtn = {
     background: "#FF4D6D", color: "#0A0A0F", border: "none",
-    padding: "1rem 2rem", fontSize: "0.85rem", fontWeight: 900,
+    padding: "1.25rem 2rem", fontSize: "1rem", fontWeight: 900,
     letterSpacing: "0.2em", cursor: "pointer", fontFamily: mono, width: "100%",
   };
 
@@ -694,11 +694,11 @@ export default function RuleBreaker() {
           alignItems: "center", justifyContent: "center",
           animation: "fadeIn 0.15s ease",
         }}>
-          <div style={{ color: "#FF4D6D", fontSize: "0.75rem", letterSpacing: "0.4em", marginBottom: "1.25rem" }}>
+          <div style={{ color: "#FF4D6D", fontSize: "1rem", letterSpacing: "0.3em", marginBottom: "1.5rem" }}>
             ⚠ RULE CHANGED
           </div>
           <div style={{
-            color: "#F0F0F0", fontSize: "clamp(1.1rem,4.5vw,1.7rem)",
+            color: "#F0F0F0", fontSize: "clamp(1.4rem,4.5vw,2.2rem)",
             fontWeight: 900, textAlign: "center", padding: "0 2.5rem", lineHeight: 1.6,
           }}>
             {inversionText}
@@ -718,7 +718,7 @@ export default function RuleBreaker() {
         <div style={{
           height: "100vh", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
-          textAlign: "center", padding: "2rem", maxWidth: 420, margin: "0 auto",
+          textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto",
           overflow: "hidden",
         }}>
           <div style={{ ...dim, marginBottom: "1.5rem" }}>
@@ -731,8 +731,8 @@ export default function RuleBreaker() {
             RULE<br /><span style={{ color: "#FF4D6D" }}>BREAKER</span>
           </h1>
           <p style={{
-            color: "#C0C0D0", fontSize: "0.95rem", letterSpacing: "0.04em",
-            margin: "1.5rem 0 2.5rem", lineHeight: 1.9,
+            color: "#C0C0D0", fontSize: "1.1rem", letterSpacing: "0.04em",
+            margin: "1.5rem 0 2.5rem", lineHeight: 2,
           }}>
             Words flash. Rules change.<br />
             Three rounds. Each harder than the last.<br />
@@ -754,15 +754,15 @@ export default function RuleBreaker() {
         <div style={{
           height: "100vh", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
-          textAlign: "center", padding: "2rem", maxWidth: 420, margin: "0 auto",
+          textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto",
           overflow: "hidden",
         }}>
           <div style={{ ...dim, marginBottom: "2rem" }}>{roundData.label}</div>
-          <div style={{ border: "1px solid #222", padding: "2rem 1.75rem", marginBottom: "2.5rem" }}>
+          <div style={{ border: "1px solid #222", padding: "2.5rem 2rem", marginBottom: "2.5rem" }}>
             {roundData.desc.split("\n").map((line, i) => (
               <p key={i} style={{
                 color: i === 2 ? "#FF4D6D" : "#F0F0F0",
-                fontSize: "1.05rem", fontWeight: 700, letterSpacing: "0.03em",
+                fontSize: "1.2rem", fontWeight: 700, letterSpacing: "0.03em",
                 margin: i === 0 ? 0 : "0.75rem 0 0", lineHeight: 1.6,
               }}>{line}</p>
             ))}
@@ -776,19 +776,19 @@ export default function RuleBreaker() {
         <div style={{
           height: "100vh", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
-          textAlign: "center", padding: "2rem", maxWidth: 460, margin: "0 auto",
+          textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto",
           overflow: "hidden",
         }}>
           <div style={{ ...dim, marginBottom: "0.5rem" }}>{roundData.label}</div>
           <div style={{ ...dim, color: "#888", marginBottom: "2rem" }}>TODAY'S RULE</div>
-          <div style={{ border: "1px solid #222", padding: "2.5rem 2rem", position: "relative", width: "100%" }}>
+          <div style={{ border: "1px solid #222", padding: "3rem 2.5rem", position: "relative", width: "100%" }}>
             <div style={{
               position: "absolute", top: -1, left: 0, height: 2,
               background: "#FF4D6D", width: "100%",
               animation: "shrink 3000ms linear forwards",
             }} />
             <p style={{
-              color: "#F0F0F0", fontSize: "clamp(1.1rem,4vw,1.5rem)",
+              color: "#F0F0F0", fontSize: "clamp(1.3rem,4vw,1.8rem)",
               fontWeight: 700, letterSpacing: "0.02em", margin: 0, lineHeight: 1.5,
             }}>
               {roundData.rules[0]}
@@ -807,19 +807,19 @@ export default function RuleBreaker() {
           padding: "2rem 1.25rem",
         }}>
           {/* Compact centered game unit */}
-          <div style={{ width: "100%", maxWidth: 460 }}>
+          <div style={{ width: "100%", maxWidth: 600 }}>
 
             {/* Live timer */}
             <div style={{
-              textAlign: "center", marginBottom: "1.25rem",
-              color: "#C0C0D0", fontSize: "0.7rem", letterSpacing: "0.2em",
+              textAlign: "center", marginBottom: "1.5rem",
+              color: "#C0C0D0", fontSize: "1.1rem", letterSpacing: "0.2em",
               fontVariantNumeric: "tabular-nums",
             }}>
               {formatTime(liveTime)}
             </div>
 
             {/* Progress bar */}
-            <div style={{ width: "100%", height: 2, background: "#1A1A24", marginBottom: "0.75rem" }}>
+            <div style={{ width: "100%", height: 3, background: "#1A1A24", marginBottom: "1rem" }}>
               <div style={{
                 height: "100%", width: `${progress}%`,
                 background: ruleColor,
@@ -829,8 +829,8 @@ export default function RuleBreaker() {
 
             {/* Rule text */}
             <div style={{
-              color: ruleColor, fontSize: "0.6rem", letterSpacing: "0.15em",
-              marginBottom: "0.75rem", minHeight: "1rem",
+              color: ruleColor, fontSize: "0.95rem", letterSpacing: "0.15em",
+              marginBottom: "1.25rem", minHeight: "1.5rem",
               transition: "color 0.3s ease", textAlign: "center",
             }}>
               {ruleText.toUpperCase()}
@@ -841,11 +841,11 @@ export default function RuleBreaker() {
               <>
                 {/* Word display — fixed height, compact */}
                 <div style={{
-                  height: "9rem",
+                  height: "12rem",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <span style={{
-                    fontSize: "clamp(2rem,10vw,3.2rem)", fontWeight: 900, letterSpacing: "0.1em",
+                    fontSize: "clamp(2.8rem,10vw,5rem)", fontWeight: 900, letterSpacing: "0.1em",
                     color: singleColor(),
                     opacity: (wordVisible || wordColor) ? 1 : 0,
                     transition: "opacity 0.08s ease, color 0.08s ease",
@@ -855,13 +855,13 @@ export default function RuleBreaker() {
                 </div>
 
                 {/* Action buttons */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", width: "100%" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", width: "100%" }}>
                   <button
                     onClick={() => handleChoice("rulebreak")}
                     style={{
-                      padding: "1.1rem 0.5rem",
+                      padding: "1.25rem 1rem",
                       fontFamily: mono, fontWeight: 900,
-                      fontSize: "clamp(0.7rem,2.5vw,0.85rem)", letterSpacing: "0.08em",
+                      fontSize: "clamp(0.9rem,2.5vw,1.1rem)", letterSpacing: "0.1em",
                       whiteSpace: "nowrap",
                       background: btnDisabled ? "#150508" : "rgba(255,77,109,0.12)",
                       color: btnDisabled ? "#3A1A20" : "#FF4D6D",
@@ -875,9 +875,9 @@ export default function RuleBreaker() {
                   <button
                     onClick={() => handleChoice("accept")}
                     style={{
-                      padding: "1.1rem 0.5rem",
+                      padding: "1.25rem 1rem",
                       fontFamily: mono, fontWeight: 900,
-                      fontSize: "clamp(0.7rem,2.5vw,0.85rem)", letterSpacing: "0.08em",
+                      fontSize: "clamp(0.9rem,2.5vw,1.1rem)", letterSpacing: "0.1em",
                       whiteSpace: "nowrap",
                       background: btnDisabled ? "#050F08" : "rgba(0,255,178,0.08)",
                       color: btnDisabled ? "#0A2A18" : "#00FFB2",
@@ -896,7 +896,7 @@ export default function RuleBreaker() {
             {isRound2 && (
               <>
                 {/* Two clickable halves — fixed height */}
-                <div style={{ display: "flex", height: "11rem", gap: "0.75rem" }}>
+                <div style={{ display: "flex", height: "14rem", gap: "1rem" }}>
                   {["left", "right"].map(side => (
                     <div
                       key={side}
@@ -911,7 +911,7 @@ export default function RuleBreaker() {
                       }}
                     >
                       <span style={{
-                        fontSize: "clamp(1.3rem,5vw,2rem)", fontWeight: 900, letterSpacing: "0.08em",
+                        fontSize: "clamp(1.6rem,5vw,2.8rem)", fontWeight: 900, letterSpacing: "0.08em",
                         color: getSideColor(side),
                         opacity: (wordVisible || r2Feedback) ? 1 : 0,
                         transition: "opacity 0.08s ease, color 0.08s ease",
@@ -926,9 +926,9 @@ export default function RuleBreaker() {
                 <button
                   onClick={() => handleChoice(null)}
                   style={{
-                    width: "100%", padding: "1.1rem", marginTop: "1.25rem",
+                    width: "100%", padding: "1.25rem", marginTop: "1.5rem",
                     fontFamily: mono, fontWeight: 900,
-                    fontSize: "clamp(0.7rem,2.5vw,0.85rem)", letterSpacing: "0.15em",
+                    fontSize: "clamp(0.9rem,2.5vw,1.1rem)", letterSpacing: "0.15em",
                     background: btnDisabled ? "#0F0F18" : "rgba(255,255,255,0.04)",
                     color: btnDisabled ? "#2A2A3A" : "#888",
                     border: `1.5px solid ${btnDisabled ? "#1A1A28" : "#444"}`,
@@ -964,13 +964,13 @@ export default function RuleBreaker() {
           <div style={{
             height: "100vh", display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
-            textAlign: "center", padding: "2rem", maxWidth: 420, margin: "0 auto",
+            textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto",
             overflow: "hidden",
           }}>
             <div style={{ ...dim, marginBottom: "1.5rem" }}>{roundData.label} COMPLETE</div>
             <div style={{
-              color: g.color, fontSize: "clamp(2rem,9vw,2.8rem)",
-              fontWeight: 900, letterSpacing: "0.1em", marginBottom: "0.5rem",
+              color: g.color, fontSize: "clamp(2.5rem,9vw,3.5rem)",
+              fontWeight: 900, letterSpacing: "0.1em", marginBottom: "0.75rem",
             }}>
               {g.label}
             </div>
@@ -993,15 +993,15 @@ export default function RuleBreaker() {
         return (
           <div style={{
             height: "100vh", overflowY: "auto",
-            maxWidth: 480, margin: "0 auto",
+            maxWidth: 600, margin: "0 auto",
             padding: "2rem 2rem 1rem", textAlign: "center",
           }}>
             <div style={{ ...dim, marginBottom: "1.5rem" }}>
               RULE BREAKER #{String(DAILY.day).padStart(3, "0")}
             </div>
             <div style={{
-              color: og.color, fontSize: "clamp(2rem,9vw,3rem)",
-              fontWeight: 900, letterSpacing: "0.1em", marginBottom: "0.3rem",
+              color: og.color, fontSize: "clamp(2.5rem,9vw,3.8rem)",
+              fontWeight: 900, letterSpacing: "0.1em", marginBottom: "0.4rem",
             }}>
               {og.label}
             </div>
@@ -1026,15 +1026,15 @@ export default function RuleBreaker() {
                   onClick={() => setReviewRound(i)}
                   style={{
                     background: "#0F0F18", border: "1px solid #1E1E2E",
-                    padding: "1.25rem", marginBottom: "1rem", textAlign: "left",
+                    padding: "1.5rem", marginBottom: "1.25rem", textAlign: "left",
                     cursor: "pointer", transition: "border-color 0.15s",
                   }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = "#444"}
                   onMouseLeave={e => e.currentTarget.style.borderColor = "#1E1E2E"}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.25rem" }}>
-                    <span style={{ ...dim, fontSize: "0.7rem" }}>{rd.label}</span>
-                    <span style={{ color: g.color, fontSize: "0.9rem", fontWeight: 900, letterSpacing: "0.1em" }}>
+                    <span style={{ ...dim }}>{rd.label}</span>
+                    <span style={{ color: g.color, fontSize: "1.1rem", fontWeight: 900, letterSpacing: "0.1em" }}>
                       {sc}/{T}
                     </span>
                   </div>
