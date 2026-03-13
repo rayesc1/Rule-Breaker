@@ -419,6 +419,7 @@ export default function RuleBreaker() {
   const [wordColor,       setWordColor     ] = useState(null);
   const [r2Feedback,      setR2Feedback    ] = useState(null);
   const [penaltyActive,   setPenaltyActive ] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [roundResults,    setRoundResults  ] = useState([null, null, null]);
   const [roundTimes,      setRoundTimes    ] = useState([null, null, null]);
   const [roundItems,      setRoundItems    ] = useState([null, null, null]);
@@ -485,6 +486,7 @@ export default function RuleBreaker() {
     setPenaltyActive(false);
     setWordColor(null);
     setR2Feedback(null);
+    setIsTransitioning(false);
     setWordVisible(true);
     if (currentIndex === 0) {
       roundStartRef.current = Date.now();
@@ -502,6 +504,7 @@ export default function RuleBreaker() {
   }, [screen, currentIndex, items, paused, TOTAL]);
 
   const advanceWord = (next) => {
+    setIsTransitioning(true);
     setWordVisible(false);
     setButtonsLive(false);
     buttonsLiveRef.current = false;
@@ -775,7 +778,7 @@ export default function RuleBreaker() {
                   <span style={{
                     fontSize: "clamp(2.8rem,10vw,5rem)", fontWeight: 900, letterSpacing: "0.1em",
                     color: singleColor(),
-                    opacity: (wordVisible || wordColor) ? 1 : 0,
+                    opacity: (wordVisible || wordColor) && !isTransitioning ? 1 : 0,
                     transition: "opacity 0.08s ease, color 0.08s ease",
                   }}>{currentItem?.word}</span>
                 </div>
@@ -816,7 +819,7 @@ export default function RuleBreaker() {
                       <span style={{
                         fontSize: "clamp(1rem,3.5vw,2.2rem)", fontWeight: 900, letterSpacing: "0.06em",
                         color: getSideColor(side),
-                        opacity: (wordVisible || r2Feedback) ? 1 : 0,
+                        opacity: (wordVisible || r2Feedback) && !isTransitioning ? 1 : 0,
                         transition: "opacity 0.08s ease, color 0.08s ease",
                         whiteSpace: "nowrap", textAlign: "center", padding: "0 1.5rem",
                       }}>{currentItem?.[side]}</span>
