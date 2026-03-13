@@ -410,6 +410,7 @@ export default function RuleBreaker() {
   const [items,           setItems         ] = useState([]);
   const [currentIndex,    setCurrentIndex  ] = useState(0);
   const [wordVisible,     setWordVisible   ] = useState(false);
+  const [displayItem,     setDisplayItem   ] = useState(null);
   const [buttonsLive,     setButtonsLive   ] = useState(false);
   const [paused,          setPaused        ] = useState(false);
   const [showInversion,   setShowInversion ] = useState(false);
@@ -419,7 +420,6 @@ export default function RuleBreaker() {
   const [wordColor,       setWordColor     ] = useState(null);
   const [r2Feedback,      setR2Feedback    ] = useState(null);
   const [penaltyActive,   setPenaltyActive ] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [roundResults,    setRoundResults  ] = useState([null, null, null]);
   const [roundTimes,      setRoundTimes    ] = useState([null, null, null]);
   const [roundItems,      setRoundItems    ] = useState([null, null, null]);
@@ -486,8 +486,13 @@ export default function RuleBreaker() {
     setPenaltyActive(false);
     setWordColor(null);
     setR2Feedback(null);
-    setIsTransitioning(false);
-    setWordVisible(true);
+    setWordVisible(false);
+    setDisplayItem(null);
+    // Short RAF delay before showing new word — forces iOS Safari to paint blank first
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setDisplayItem(items[currentIndex] || null);
+      setWordVisible(true);
+    }));
     if (currentIndex === 0) {
       roundStartRef.current = Date.now();
       setLiveTime(0);
@@ -504,14 +509,15 @@ export default function RuleBreaker() {
   }, [screen, currentIndex, items, paused, TOTAL]);
 
   const advanceWord = (next) => {
-    setIsTransitioning(true);
+    // Clear display immediately — iOS Safari sees empty element, no stacking possible
     setWordVisible(false);
+    setDisplayItem(null);
+    setWordColor(null);
+    setR2Feedback(null);
     setButtonsLive(false);
     buttonsLiveRef.current = false;
 
     setTimeout(() => {
-      setWordColor(null);
-      setR2Feedback(null);
 
       if (invPts.includes(next)) {
         const newRuleIdx = invPts.indexOf(next) + 1;
@@ -778,9 +784,9 @@ export default function RuleBreaker() {
                   <span style={{
                     fontSize: "clamp(2.8rem,10vw,5rem)", fontWeight: 900, letterSpacing: "0.1em",
                     color: singleColor(),
-                    opacity: (wordVisible || wordColor) && !isTransitioning ? 1 : 0,
+                    opacity: (wordVisible || wordColor) ? 1 : 0,
                     transition: "opacity 0.08s ease, color 0.08s ease",
-                  }}>{currentItem?.word}</span>
+                  }}>{displayItem?.word}</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", width: "100%" }}>
                   <button onClick={() => handleChoice("rulebreak")} style={{
@@ -819,10 +825,10 @@ export default function RuleBreaker() {
                       <span style={{
                         fontSize: "clamp(1rem,3.5vw,2.2rem)", fontWeight: 900, letterSpacing: "0.06em",
                         color: getSideColor(side),
-                        opacity: (wordVisible || r2Feedback) && !isTransitioning ? 1 : 0,
+                        opacity: (wordVisible || r2Feedback) ? 1 : 0,
                         transition: "opacity 0.08s ease, color 0.08s ease",
                         whiteSpace: "nowrap", textAlign: "center", padding: "0 1.5rem",
-                      }}>{currentItem?.[side]}</span>
+                      }}>{displayItem?.[side]}</span>
                     </div>
                   ))}
                 </div>
