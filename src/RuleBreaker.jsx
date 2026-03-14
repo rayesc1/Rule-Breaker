@@ -296,10 +296,63 @@ const STYLES = `
   html, body, #root { height: 100%; background: #111111; color: #FFFFFF; }
   body { font-family: 'Konkhmer Sleokchher', sans-serif; overflow: hidden; }
   button { cursor: pointer; border: none; font-family: 'Konkhmer Sleokchher', sans-serif; }
+
   @keyframes flashGreen { 0%,100%{background:#111111} 50%{background:rgba(46,204,113,0.18)} }
   @keyframes flashRed   { 0%,100%{background:#111111} 50%{background:rgba(255,64,96,0.18)} }
   @keyframes wordIn     { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
   @keyframes pulse      { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  .rb-backdrop {
+    width: 100%; height: 100dvh;
+    background: #111111;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  .rb-card {
+    width: 100%; height: 100%;
+    background: #111111; color: #FFFFFF;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px;
+    position: relative; overflow: hidden;
+  }
+
+  .rb-skip {
+    position: absolute; top: 16px; right: 16px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;
+    color: rgba(255,255,255,0.35);
+    font-family: 'Konkhmer Sleokchher', sans-serif;
+    font-size: 11px; padding: 6px 12px; letter-spacing: 0.06em;
+    cursor: pointer; z-index: 10;
+  }
+
+  @media (min-width: 768px) {
+    html, body, #root { overflow: hidden; }
+
+    .rb-backdrop {
+      background: #0C0C0C;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+
+    .rb-card {
+      width: 400px;
+      height: min(820px, 92dvh);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 16px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    .rb-card::-webkit-scrollbar { display: none; }
+
+    .rb-skip { top: 14px; right: 14px; }
+
+    /* Title capped so BREAKER! never overflows the 400px card */
+    .rb-title { font-size: 72px !important; }
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -310,26 +363,14 @@ function Shell({ children, flash, onSkip }) {
              : flash === "red"   ? "flashRed 0.45s ease"
              : "none";
   return (
-    <div style={{
-      width: "100%", height: "100dvh", background: "#111111", color: "#FFFFFF",
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "24px 20px",
-      animation: anim, position: "relative", overflow: "hidden",
-    }}>
+    <div className="rb-backdrop">
       <style>{STYLES}</style>
-      {onSkip && (
-        <button onClick={onSkip} style={{
-          position: "absolute", top: "16px", right: "16px",
-          background: "transparent", border: "1px solid rgba(255,255,255,0.2)",
-          borderRadius: "4px", color: "rgba(255,255,255,0.35)",
-          fontFamily: "'Konkhmer Sleokchher',sans-serif",
-          fontSize: "11px", padding: "6px 12px", letterSpacing: "0.06em",
-          cursor: "pointer",
-        }}>
-          SKIP →
-        </button>
-      )}
-      {children}
+      <div className="rb-card" style={{ animation: anim }}>
+        {onSkip && (
+          <button className="rb-skip" onClick={onSkip}>SKIP →</button>
+        )}
+        {children}
+      </div>
     </div>
   );
 }
@@ -441,8 +482,8 @@ function IntroScreen({ onPlay }) {
         </div>
 
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FFFFFF", letterSpacing: "0.01em" }}>RULE</div>
-          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FF4060", letterSpacing: "0.01em" }}>BREAKER!</div>
+          <div className="rb-title" style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FFFFFF", letterSpacing: "0.01em" }}>RULE</div>
+          <div className="rb-title" style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FF4060", letterSpacing: "0.01em" }}>BREAKER!</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,2vw,16px)", textAlign: "center" }}>
