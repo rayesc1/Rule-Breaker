@@ -1,914 +1,838 @@
 import { useState, useEffect, useRef } from "react";
 
-function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function formatTime(ms) {
-  if (ms === null || ms === undefined) return "—";
-  return (ms / 1000).toFixed(2) + "s";
-}
-
-function buildItems(roundData) {
-  if (roundData.type === "single") {
-    const pts = [0, ...roundData.inversionPoints, roundData.words.length];
-    return pts.slice(0, -1).reduce((acc, _, i) =>
-      [...acc, ...shuffleArray(roundData.words.slice(pts[i], pts[i + 1]))
-        .map(w => ({ ...w, type: "single", phaseIndex: i }))], []);
-  }
-  if (roundData.type === "pairs") {
-    return shuffleArray(roundData.pairs).map(p => ({ ...p, type: "pairs", phaseIndex: 0 }));
-  }
-  if (roundData.type === "mixed") {
-    return roundData.phases.reduce((acc, phase, i) => {
-      const shuffled = phase.type === "single"
-        ? shuffleArray([...phase.words]).map(w => ({ ...w, type: "single", phaseIndex: i }))
-        : shuffleArray([...phase.pairs]).map(p => ({ ...p, type: "pairs",  phaseIndex: i }));
-      return [...acc, ...shuffled];
-    }, []);
-  }
-  return [];
-}
-
-const VOWELS = new Set(["a","e","i","o","u"]);
-
-const SILENT_LETTER_WORDS = new Set([
-  "KNIGHT","KNIFE","KNOT","KNOW","KNEE","KNEEL","KNAVE","KNACK",
-  "WRAP","WRITE","WRIST","WRECK","WRONG","WROTE","WREN",
-  "GNOME","GNAW","GNAT",
-  "LAMB","LIMB","THUMB","CLIMB","COMB","BOMB","NUMB","DUMB","PLUMB","TOMB",
-  "PSALM","PSYCHOLOGY","PNEUMONIA",
-  "SWORD","ANSWER",
-  "GHOST","HOUR","HONEST","HEIR","HONOR",
-  "SCENE","SCISSORS","MUSCLE","ISLE","AISLE",
-]);
-
-const LIVING_THINGS = new Set([
-  "TIGER","LION","BEAR","WOLF","FOX","DEER","HAWK","EAGLE","OWL","CROW",
-  "FERN","CEDAR","ASPEN","OAK","PINE","MOSS","ALGAE","LICHEN","LOTUS","ORCHID",
-  "WASP","MOTH","MANTIS","BEETLE","CRICKET","FLEA","GNAT","MITE",
-  "VIPER","COBRA","NEWT","FROG","TOAD","GECKO",
-  "RAVEN","HERON","ROBIN","FINCH","WREN","SWIFT","CRANE","STORK",
-  "BISON","MOOSE","LYNX","OTTER","MINK","VOLE","SHREW",
-  "FUNGUS","YEAST","MOLD",
-  "CACTUS","SHRUB","KELP","REED","CLOVER","NETTLE",
-]);
-
-const RULE_CHECKERS = {
-  "Has more consonants than vowels": (w) => {
-    const lower = w.toLowerCase();
-    const v = [...lower].filter(c => VOWELS.has(c)).length;
-    const c = [...lower].filter(c => /[a-z]/.test(c) && !VOWELS.has(c)).length;
-    return c > v;
-  },
-  "Starts and ends with the same letter": (w) =>
-    w[0].toLowerCase() === w[w.length - 1].toLowerCase(),
-  "No repeated letters": (w) =>
-    new Set(w.toLowerCase().split("")).size === w.length,
-  "Contains a silent letter": (w) =>
-    SILENT_LETTER_WORDS.has(w.toUpperCase()),
-  "All vowels are the same letter": (w) => {
-    const vowels = [...w.toLowerCase()].filter(c => VOWELS.has(c));
-    return vowels.length >= 2 && new Set(vowels).size === 1;
-  },
-  "Is a living thing": (w) =>
-    LIVING_THINGS.has(w.toUpperCase()),
-};
-
-function validatePuzzle(puzzle) {
-  let valid = true;
-  const warn = (msg) => { console.warn("[RuleBreaker] " + msg); valid = false; };
-
-  puzzle.rounds.forEach((round) => {
-    const label = round.label;
-
-    if (round.type === "single") {
-      if (round.words.length !== round.total)
-        warn(label + ": total=" + round.total + " but found " + round.words.length);
-      const pts = [0, ...round.inversionPoints, round.words.length];
-      pts.slice(0, -1).forEach((start, pi) => {
-        const end = pts[pi + 1], rule = round.rules[pi];
-        const checker = RULE_CHECKERS[rule];
-        if (!checker) { warn(label + " phase " + pi + ": no checker for " + rule); return; }
-        for (let wi = start; wi < end; wi++) {
-          const w = round.words[wi], expected = checker(w.word);
-          if (w.shouldTap !== expected)
-            warn(label + " word[" + wi + "] " + w.word + ": shouldTap=" + w.shouldTap + " checker=" + expected);
-        }
-      });
-    }
-
-    if (round.type === "pairs") {
-      if (round.pairs.length !== round.total)
-        warn(label + ": total=" + round.total + " but found " + round.pairs.length);
-      const checker = RULE_CHECKERS[round.rules[0]];
-      if (!checker) { warn(label + ": no checker for " + round.rules[0]); return; }
-      round.pairs.forEach((pair, pi) => {
-        const lm = checker(pair.left), rm = checker(pair.right);
-        if (lm && rm) warn(label + " pair[" + pi + "]: BOTH satisfy rule");
-        if (lm && pair.correctSide !== "left")  warn(label + " pair[" + pi + "] " + pair.left + " satisfies but correctSide=" + pair.correctSide);
-        if (rm && pair.correctSide !== "right") warn(label + " pair[" + pi + "] " + pair.right + " satisfies but correctSide=" + pair.correctSide);
-        if (!lm && !rm && pair.correctSide !== null) warn(label + " pair[" + pi + "]: neither satisfies but correctSide=" + pair.correctSide);
-      });
-    }
-
-    if (round.type === "mixed") {
-      const total = round.phases.reduce((s, p) =>
-        s + (p.type === "single" ? p.words.length : p.pairs.length), 0);
-      if (total !== round.total)
-        warn(label + ": total=" + round.total + " but phases sum to " + total);
-      round.phases.forEach((phase, pi) => {
-        const rule = round.rules[pi];
-        const checker = RULE_CHECKERS[rule];
-        if (!checker) { warn(label + " phase " + pi + ": no checker for " + rule); return; }
-        if (phase.type === "single") {
-          phase.words.forEach((w, wi) => {
-            const expected = checker(w.word);
-            if (w.shouldTap !== expected)
-              warn(label + " phase" + pi + " word[" + wi + "] " + w.word + ": shouldTap=" + w.shouldTap + " checker=" + expected);
-          });
-        }
-        if (phase.type === "pairs") {
-          phase.pairs.forEach((pair, pj) => {
-            const lm = checker(pair.left), rm = checker(pair.right);
-            if (lm && rm) warn(label + " phase" + pi + " pair[" + pj + "]: BOTH satisfy rule");
-            if (lm && pair.correctSide !== "left")  warn(label + " phase" + pi + " pair[" + pj + "] " + pair.left + " satisfies but correctSide=" + pair.correctSide);
-            if (rm && pair.correctSide !== "right") warn(label + " phase" + pi + " pair[" + pj + "] " + pair.right + " satisfies but correctSide=" + pair.correctSide);
-            if (!lm && !rm && pair.correctSide !== null) warn(label + " phase" + pi + " pair[" + pj + "]: neither satisfies but correctSide=" + pair.correctSide);
-          });
-        }
-      });
-    }
-  });
-
-  if (valid) console.log("[RuleBreaker] \u2713 Puzzle passed all checks.");
-  return valid;
-}
-
-const DAILY = {
-  day: 1,
-  rounds: [
-    {
-      type: "single",
-      label: "ROUND 1",
-      total: 25,
-      desc: "25 words flash one at a time.\nAccept or Rule Break each one.\nThe rule changes once midway.",
-      inversionPoints: [13],
-      rules: [
-        "Has more consonants than vowels",
-        "Starts and ends with the same letter",
-      ],
-      words: [
-        { word: "STRENGTH", shouldTap: true  },
-        { word: "CRISP",    shouldTap: true  },
-        { word: "BLUNT",    shouldTap: true  },
-        { word: "DRIFT",    shouldTap: true  },
-        { word: "SHRINK",   shouldTap: true  },
-        { word: "SPHINX",   shouldTap: true  },
-        { word: "SCRAWL",   shouldTap: true  },
-        { word: "AUDIO",    shouldTap: false },
-        { word: "OCEAN",    shouldTap: false },
-        { word: "IRATE",    shouldTap: false },
-        { word: "OASIS",    shouldTap: false },
-        { word: "RATIO",    shouldTap: false },
-        { word: "AERIAL",   shouldTap: false },
-        { word: "LEVEL",    shouldTap: true  },
-        { word: "CIVIC",    shouldTap: true  },
-        { word: "RADAR",    shouldTap: true  },
-        { word: "KAYAK",    shouldTap: true  },
-        { word: "TENET",    shouldTap: true  },
-        { word: "GOING",    shouldTap: true  },
-        { word: "CRIMP",    shouldTap: false },
-        { word: "BRISK",    shouldTap: false },
-        { word: "DUSK",     shouldTap: false },
-        { word: "GLYPH",    shouldTap: false },
-        { word: "PLUNGE",   shouldTap: false },
-        { word: "THATCH",   shouldTap: false },
-      ],
-    },
-    {
-      type: "pairs",
-      label: "ROUND 2",
-      total: 30,
-      desc: "30 word pairs flash side by side.\nTap the living thing.\nIf neither is alive — tap None!",
-      inversionPoints: [],
-      rules: ["Is a living thing"],
-      pairs: [
-        { left: "TIGER",   right: "ANVIL",   correctSide: "left"  },
-        { left: "GRAVEL",  right: "FERN",    correctSide: "right" },
-        { left: "SHADOW",  right: "LANTERN", correctSide: null    },
-        { left: "CEDAR",   right: "MARBLE",  correctSide: "left"  },
-        { left: "THUNDER", right: "WASP",    correctSide: "right" },
-        { left: "COBALT",  right: "IRON",    correctSide: null    },
-        { left: "FUNGUS",  right: "CRATER",  correctSide: "left"  },
-        { left: "CANVAS",  right: "MOTH",    correctSide: "right" },
-        { left: "GLACIER", right: "SUMMIT",  correctSide: null    },
-        { left: "CACTUS",  right: "RUBBLE",  correctSide: "left"  },
-        { left: "BRONZE",  right: "RAVEN",   correctSide: "right" },
-        { left: "STATIC",  right: "FOSSIL",  correctSide: null    },
-        { left: "VIPER",   right: "CHIMNEY", correctSide: "left"  },
-        { left: "TUNDRA",  right: "HERON",   correctSide: "right" },
-        { left: "PISTON",  right: "DEBRIS",  correctSide: null    },
-        { left: "LICHEN",  right: "BARREL",  correctSide: "left"  },
-        { left: "SHOVEL",  right: "NEWT",    correctSide: "right" },
-        { left: "GROTTO",  right: "CAVERN",  correctSide: null    },
-        { left: "LOTUS",   right: "PEBBLE",  correctSide: "left"  },
-        { left: "CIRCUIT", right: "ROBIN",   correctSide: "right" },
-        { left: "ASPEN",   right: "CINDER",  correctSide: "left"  },
-        { left: "PILLAR",  right: "MANTIS",  correctSide: "right" },
-        { left: "FLINT",   right: "COBWEB",  correctSide: null    },
-        { left: "ORCHID",  right: "GRANITE", correctSide: "left"  },
-        { left: "SHARD",   right: "LYNX",    correctSide: "right" },
-        { left: "ALGAE",   right: "EMBER",   correctSide: "left"  },
-        { left: "SPIRE",   right: "FINCH",   correctSide: "right" },
-        { left: "SLAG",    right: "MORTAR",  correctSide: null    },
-        { left: "BISON",   right: "GIRDER",  correctSide: "left"  },
-        { left: "PRISM",   right: "COBRA",   correctSide: "right" },
-      ],
-    },
-    {
-      type: "mixed",
-      label: "ROUND 3",
-      total: 35,
-      desc: "35 items. Two rule changes. The format changes too.\nEverything you have learned — at once.\nStay sharp.",
-      inversionPoints: [12, 24],
-      rules: [
-        "No repeated letters",
-        "Contains a silent letter",
-        "All vowels are the same letter",
-      ],
-      phases: [
-        {
-          type: "single",
-          count: 12,
-          words: [
-            { word: "FJORD",   shouldTap: true  },
-            { word: "PLUMB",   shouldTap: true  },
-            { word: "GAWKY",   shouldTap: true  },
-            { word: "BLING",   shouldTap: true  },
-            { word: "CRAMP",   shouldTap: true  },
-            { word: "DWARF",   shouldTap: true  },
-            { word: "COFFEE",  shouldTap: false },
-            { word: "BUTTER",  shouldTap: false },
-            { word: "LITTLE",  shouldTap: false },
-            { word: "MAMMOTH", shouldTap: false },
-            { word: "PEPPER",  shouldTap: false },
-            { word: "RIBBON",  shouldTap: false },
-          ],
-        },
-        {
-          type: "pairs",
-          count: 12,
-          pairs: [
-            { left: "KNIGHT", right: "STAMP",  correctSide: "left"  },
-            { left: "STONE",  right: "LAMB",   correctSide: "right" },
-            { left: "THUMB",  right: "TRUCK",  correctSide: "left"  },
-            { left: "TRENCH", right: "WRAP",   correctSide: "right" },
-            { left: "SWORD",  right: "BRICK",  correctSide: "left"  },
-            { left: "PLANK",  right: "KNIFE",  correctSide: "right" },
-            { left: "WRITE",  right: "STOMP",  correctSide: "left"  },
-            { left: "SCOUT",  right: "KNOT",   correctSide: "right" },
-            { left: "GHOST",  right: "SHRUB",  correctSide: "left"  },
-            { left: "BLEND",  right: "PSALM",  correctSide: "right" },
-            { left: "GNOME",  right: "SWIFT",  correctSide: "left"  },
-            { left: "FROST",  right: "CLIMB",  correctSide: "right" },
-          ],
-        },
-        {
-          type: "single",
-          count: 11,
-          words: [
-            { word: "VOODOO", shouldTap: true  },
-            { word: "COTTON", shouldTap: true  },
-            { word: "COMMON", shouldTap: true  },
-            { word: "DEFEND", shouldTap: true  },
-            { word: "ELEVEN", shouldTap: true  },
-            { word: "SWEET",  shouldTap: true  },
-            { word: "PLANET", shouldTap: false },
-            { word: "JUNGLE", shouldTap: false },
-            { word: "SIMPLE", shouldTap: false },
-            { word: "CASTLE", shouldTap: false },
-            { word: "BOTTLE", shouldTap: false },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
 const MIN_DISPLAY_MS = 300;
 const PENALTY_MS     = 500;
 const INVERSION_MS   = 2500;
 const ADVANCE_MS     = 200;
-const RULE_COLORS    = ["#00FFB2", "#FF4D6D", "#FFE14D"];
-const SCREENS = {
-  INTRO: "intro", ROUND_INTRO: "round_intro", RULE: "rule",
-  GAME: "game", ROUND_SUMMARY: "round_summary", RESULTS: "results",
+const MAX_W          = "460px";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Word sets
+// ─────────────────────────────────────────────────────────────────────────────
+const SILENT_LETTER_WORDS = new Set([
+  "KNIGHT","KNIFE","WRAP","GNOME","LAMB","THUMB","CLIMB",
+  "GHOST","SWORD","KNOT","WRECK","GNAT","WRIST","KNEEL",
+  "KNOCK","DUMB","COMB","NUMB","DEBT","DOUBT","WREN","WRITE","PSALM"
+]);
+
+const LIVING_THINGS = new Set([
+  "TIGER","FERN","CEDAR","WASP","MOTH","MANTIS","VIPER","COBRA",
+  "RAVEN","BISON","FUNGUS","OAK","ROSE","WOLF","SHARK","ELM",
+  "MOSS","CROW","DEER","FINCH","MAPLE","OTTER","TROUT",
+  "SALMON","BEETLE","SPIDER","TULIP","PINE","HERON","TOAD","ORCHID",
+  "LYNX","CRANE","GECKO","CACTUS","NEWT","LARK","BADGER","MOLE",
+  "PANDA","FALCON","PENGUIN","TREE","SNAKE","FROG","HAWK","WREN"
+]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rule checkers
+// ─────────────────────────────────────────────────────────────────────────────
+const RULE_CHECKERS = {
+  "Has more consonants than vowels": w => {
+    const v = (w.match(/[AEIOU]/gi) || []).length;
+    return (w.length - v) > v;
+  },
+  "Starts and ends with the same letter": w => {
+    const u = w.toUpperCase();
+    return u.length > 1 && u[0] === u[u.length - 1];
+  },
+  "No repeated letters": w => {
+    const u = w.toUpperCase();
+    return new Set(u).size === u.length;
+  },
+  "Contains a silent letter": w => SILENT_LETTER_WORDS.has(w.toUpperCase()),
+  "All vowels are the same letter": w => {
+    const v = w.toUpperCase().match(/[AEIOU]/g);
+    if (!v || v.length === 0) return false;
+    return new Set(v).size === 1;
+  },
+  "Is a living thing": w => LIVING_THINGS.has(w.toUpperCase()),
 };
 
-function ReviewModal({ reviewRound, roundResults, roundItems, setReviewRound }) {
-  if (reviewRound === null) return null;
-  const mono = "'Courier New', monospace";
-  const dim  = { color: "#B0B0C0", fontSize: "0.9rem", letterSpacing: "0.2em" };
-  const i      = reviewRound;
-  const rd     = DAILY.rounds[i];
-  const res    = roundResults[i] || [];
-  const ritems = roundItems[i]   || [];
-  const pts    = rd.inversionPoints || [];
-  const isMixed = rd.type === "mixed";
+// ─────────────────────────────────────────────────────────────────────────────
+// Puzzle data
+// ─────────────────────────────────────────────────────────────────────────────
+const DAILY = {
+  date: "March 13, 2026",
+  number: "001",
+  rounds: [
+    {
+      id: 0, label: "ROUND 1", name: "The Switch",
+      type: "single", total: 25, inversionPoints: [13],
+      rules: ["Has more consonants than vowels", "Starts and ends with the same letter"],
+      words: [
+        { word: "DRAFT",   shouldAccept: true  },
+        { word: "OCEAN",   shouldAccept: false },
+        { word: "BRIDGE",  shouldAccept: true  },
+        { word: "AREA",    shouldAccept: false },
+        { word: "FRESH",   shouldAccept: true  },
+        { word: "AUDIO",   shouldAccept: false },
+        { word: "STRONG",  shouldAccept: true  },
+        { word: "OPEN",    shouldAccept: false },
+        { word: "FROST",   shouldAccept: true  },
+        { word: "EAGLE",   shouldAccept: false },
+        { word: "CRISP",   shouldAccept: true  },
+        { word: "ISSUE",   shouldAccept: false },
+        { word: "BLEND",   shouldAccept: true  },
+        { word: "AERIAL",  shouldAccept: false },
+        { word: "KAYAK",   shouldAccept: true  },
+        { word: "TABLE",   shouldAccept: false },
+        { word: "CIVIC",   shouldAccept: true  },
+        { word: "MAGIC",   shouldAccept: false },
+        { word: "RADAR",   shouldAccept: true  },
+        { word: "BROWN",   shouldAccept: false },
+        { word: "LEVEL",   shouldAccept: true  },
+        { word: "PHONE",   shouldAccept: false },
+        { word: "ENTICE",  shouldAccept: true  },
+        { word: "STORM",   shouldAccept: false },
+        { word: "TENET",   shouldAccept: true  },
+      ]
+    },
+    {
+      id: 1, label: "ROUND 2", name: "Pairs",
+      type: "pairs", total: 30, inversionPoints: [],
+      rules: ["Is a living thing"],
+      pairs: [
+        { left: "TREE",    right: "SNAKE",   shouldAccept: true  },
+        { left: "TIGER",   right: "FERN",    shouldAccept: true  },
+        { left: "RAVEN",   right: "WASP",    shouldAccept: true  },
+        { left: "OAK",     right: "COBRA",   shouldAccept: true  },
+        { left: "WOLF",    right: "MOSS",    shouldAccept: true  },
+        { left: "ROSE",    right: "BISON",   shouldAccept: true  },
+        { left: "SHARK",   right: "ELM",     shouldAccept: true  },
+        { left: "CROW",    right: "MOTH",    shouldAccept: true  },
+        { left: "DEER",    right: "FINCH",   shouldAccept: true  },
+        { left: "OTTER",   right: "CEDAR",   shouldAccept: true  },
+        { left: "SALMON",  right: "TULIP",   shouldAccept: true  },
+        { left: "LYNX",    right: "CRANE",   shouldAccept: true  },
+        { left: "HERON",   right: "TOAD",    shouldAccept: true  },
+        { left: "SPIDER",  right: "PINE",    shouldAccept: true  },
+        { left: "BEETLE",  right: "ORCHID",  shouldAccept: true  },
+        { left: "STONE",   right: "TIGER",   shouldAccept: false },
+        { left: "ANVIL",   right: "FERN",    shouldAccept: false },
+        { left: "MANTIS",  right: "DOOR",    shouldAccept: false },
+        { left: "LAMP",    right: "WOLF",    shouldAccept: false },
+        { left: "HAWK",    right: "BRICK",   shouldAccept: false },
+        { left: "TOWER",   right: "SHARK",   shouldAccept: false },
+        { left: "WREN",    right: "CLOCK",   shouldAccept: false },
+        { left: "BOOK",    right: "CRANE",   shouldAccept: false },
+        { left: "COIN",    right: "HERON",   shouldAccept: false },
+        { left: "DESK",    right: "TOAD",    shouldAccept: false },
+        { left: "GLASS",   right: "GECKO",   shouldAccept: false },
+        { left: "FROG",    right: "CHAIN",   shouldAccept: false },
+        { left: "CHAIR",   right: "NEWT",    shouldAccept: false },
+        { left: "DRUM",    right: "LYNX",    shouldAccept: false },
+        { left: "MAPLE",   right: "ROPE",    shouldAccept: false },
+      ]
+    },
+    {
+      id: 2, label: "ROUND 3", name: "Rule Breaker",
+      type: "mixed", total: 40, inversionPoints: [10, 20, 30],
+      rules: [
+        "No repeated letters",
+        "Contains a silent letter",
+        "All vowels are the same letter",
+        "Starts and ends with the same letter"
+      ],
+      items: [
+        { format: "single", word: "BRANCH",                        shouldAccept: true  },
+        { format: "single", word: "MAMMOTH",                       shouldAccept: false },
+        { format: "pair",   left: "WORLD",   right: "STEAM",       shouldAccept: true  },
+        { format: "single", word: "PEPPER",                        shouldAccept: false },
+        { format: "pair",   left: "PLIGHT",  right: "COFFEE",      shouldAccept: false },
+        { format: "single", word: "CLOVER",                        shouldAccept: true  },
+        { format: "pair",   left: "RACECAR", right: "SLAY",        shouldAccept: false },
+        { format: "single", word: "SPHINX",                        shouldAccept: true  },
+        { format: "pair",   left: "FROST",   right: "BLAND",       shouldAccept: true  },
+        { format: "single", word: "BALLOT",                        shouldAccept: false },
+        { format: "single", word: "KNIGHT",                        shouldAccept: true  },
+        { format: "single", word: "STONE",                         shouldAccept: false },
+        { format: "pair",   left: "KNIFE",   right: "WRAP",        shouldAccept: true  },
+        { format: "pair",   left: "TOWER",   right: "GNOME",       shouldAccept: false },
+        { format: "single", word: "LAMB",                          shouldAccept: true  },
+        { format: "single", word: "CRISP",                         shouldAccept: false },
+        { format: "pair",   left: "GHOST",   right: "THUMB",       shouldAccept: true  },
+        { format: "single", word: "WRIST",                         shouldAccept: true  },
+        { format: "pair",   left: "BRAND",   right: "CLIMB",       shouldAccept: false },
+        { format: "single", word: "DOUBT",                         shouldAccept: true  },
+        { format: "single", word: "ROBOT",                         shouldAccept: true  },
+        { format: "single", word: "PROBLEM",                       shouldAccept: false },
+        { format: "pair",   left: "COTTON",  right: "COMMON",      shouldAccept: true  },
+        { format: "pair",   left: "FOSSIL",  right: "TENNIS",      shouldAccept: false },
+        { format: "single", word: "VIVID",                         shouldAccept: true  },
+        { format: "single", word: "CONTENT",                       shouldAccept: false },
+        { format: "pair",   left: "SENSES",  right: "PREFER",      shouldAccept: true  },
+        { format: "single", word: "BLOSSOM",                       shouldAccept: true  },
+        { format: "pair",   left: "MINIMUM", right: "DIVIDE",      shouldAccept: false },
+        { format: "single", word: "BONBON",                        shouldAccept: true  },
+        { format: "single", word: "KAYAK",                         shouldAccept: true  },
+        { format: "single", word: "TABLE",                         shouldAccept: false },
+        { format: "pair",   left: "CIVIC",   right: "RADAR",       shouldAccept: true  },
+        { format: "pair",   left: "MAGIC",   right: "LEVEL",       shouldAccept: false },
+        { format: "single", word: "ROTOR",                         shouldAccept: true  },
+        { format: "single", word: "CLOUD",                         shouldAccept: false },
+        { format: "pair",   left: "TENET",   right: "NOON",        shouldAccept: true  },
+        { format: "single", word: "STORM",                         shouldAccept: false },
+        { format: "pair",   left: "SWIMS",   right: "ENTICE",      shouldAccept: true  },
+        { format: "single", word: "PHONE",                         shouldAccept: false },
+      ]
+    }
+  ]
+};
 
-  const ruleForItem = (item) => {
-    const pi = item?.phaseIndex ?? 0;
-    return rd.rules?.[pi] || "";
-  };
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function getItem(rd, i) {
+  if (rd.type === "single") return rd.words[i];
+  if (rd.type === "pairs")  return rd.pairs[i];
+  return rd.items[i];
+}
 
+function getItemFormat(rd, item) {
+  if (rd.type === "single") return "single";
+  if (rd.type === "pairs")  return "pair";
+  return item?.format ?? "single";
+}
+
+function formatTime(ms) {
+  if (!ms || ms <= 0) return "0.0s";
+  if (ms < 60000) return (ms / 1000).toFixed(1) + "s";
+  const m = Math.floor(ms / 60000);
+  const s = ((ms % 60000) / 1000).toFixed(1).padStart(4, "0");
+  return `${m}:${s}`;
+}
+
+function getGrade(correct, total) {
+  const p = correct / total;
+  if (p === 1)   return "PERFECT";
+  if (p >= 0.8)  return "SHARP";
+  if (p >= 0.6)  return "SOLID";
+  if (p >= 0.4)  return "LEARNING";
+  return "MISSED IT";
+}
+
+function getOverallGrade(correct, total) {
+  const p = correct / total;
+  if (p === 1)   return "FLAWLESS";
+  if (p >= 0.85) return "SHARP";
+  if (p >= 0.65) return "SOLID";
+  if (p >= 0.45) return "LEARNING";
+  return "ROUGH DAY";
+}
+
+function wordFontSize(word, isPair) {
+  const l = (word || "").length;
+  if (isPair) {
+    if (l <= 3) return "clamp(26px, 5vw, 46px)";
+    if (l <= 5) return "clamp(20px, 4vw, 38px)";
+    if (l <= 7) return "clamp(16px, 3vw, 30px)";
+    return "clamp(13px, 2.5vw, 22px)";
+  }
+  if (l <= 4)  return "clamp(56px, 12vw, 88px)";
+  if (l <= 6)  return "clamp(44px, 9vw, 70px)";
+  if (l <= 8)  return "clamp(34px, 7vw, 56px)";
+  if (l <= 10) return "clamp(26px, 5.5vw, 42px)";
+  return "clamp(20px, 4vw, 32px)";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Global styles
+// FIX 1: Moved into Shell so these rules are always present in the DOM.
+// Previously only injected inside IntroScreen — body color/background were
+// lost the moment IntroScreen unmounted, causing black text on all screens.
+// ─────────────────────────────────────────────────────────────────────────────
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Konkhmer+Sleokchher&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body, #root { height: 100%; background: #111111; color: #FFFFFF; }
+  body { font-family: 'Konkhmer Sleokchher', sans-serif; overflow: hidden; }
+  button { cursor: pointer; border: none; font-family: 'Konkhmer Sleokchher', sans-serif; }
+  @keyframes flashGreen { 0%,100%{background:#111111} 50%{background:rgba(46,204,113,0.18)} }
+  @keyframes flashRed   { 0%,100%{background:#111111} 50%{background:rgba(255,64,96,0.18)} }
+  @keyframes wordIn     { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+  @keyframes pulse      { 0%,100%{opacity:1} 50%{opacity:0.35} }
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared UI
+// ─────────────────────────────────────────────────────────────────────────────
+function Shell({ children, flash }) {
+  const anim = flash === "green" ? "flashGreen 0.45s ease"
+             : flash === "red"   ? "flashRed 0.45s ease"
+             : "none";
   return (
-    <div onClick={() => setReviewRound(null)} style={{
-      position: "fixed", inset: 0, zIndex: 200,
-      background: "rgba(10,10,15,0.92)",
-      display: "flex", alignItems: "flex-start", justifyContent: "center",
-      overflowY: "auto", padding: "2rem 1rem",
-      animation: "fadeIn 0.15s ease",
+    <div style={{
+      width: "100%", height: "100dvh", background: "#111111", color: "#FFFFFF",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", padding: "24px 20px",
+      animation: anim, position: "relative", overflow: "hidden",
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 560,
-        background: "#0F0F18", border: "1px solid #1E1E2E", padding: "1.5rem",
+      <style>{STYLES}</style>
+      {children}
+    </div>
+  );
+}
+
+function RoundLabel({ label, name }) {
+  return (
+    <div style={{ textAlign: "center", marginBottom: "4px" }}>
+      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700, fontSize: "clamp(14px,2vw,18px)", color: "#FFFFFF", letterSpacing: "0.05em" }}>
+        {label}:{" "}
+      </span>
+      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700, fontSize: "clamp(14px,2vw,18px)", color: "#FF4060" }}>
+        {name}
+      </span>
+    </div>
+  );
+}
+
+function RuleBox({ rule }) {
+  return (
+    <div style={{
+      width: "100%", maxWidth: MAX_W, border: "2px solid #FFFFFF",
+      borderRadius: "4px", padding: "clamp(20px,4vw,32px) clamp(16px,3vw,28px)",
+      textAlign: "center", background: "#111111",
+    }}>
+      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 500, fontSize: "clamp(16px,2.5vw,24px)", color: "#FFFFFF", lineHeight: 1.4, display: "block" }}>
+        {rule}
+      </span>
+    </div>
+  );
+}
+
+function WordBox({ children, style }) {
+  return (
+    <div style={{
+      width: "100%", maxWidth: MAX_W, border: "2px solid #FFFFFF",
+      borderRadius: "4px", display: "flex", alignItems: "center",
+      justifyContent: "center", minHeight: "clamp(110px,18vw,160px)",
+      background: "#111111", ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function ActionButtons({ onRuleBreak, onAccept, disabled }) {
+  return (
+    <div style={{ display: "flex", gap: "12px", width: "100%", maxWidth: MAX_W }}>
+      <button onClick={onRuleBreak} disabled={disabled} style={{
+        flex: 1, padding: "clamp(14px,2.5vw,20px) 8px",
+        background: "transparent", border: "2px solid #FF4060", borderRadius: "4px",
+        color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700,
+        fontSize: "clamp(12px,1.8vw,16px)", letterSpacing: "0.04em",
+        opacity: disabled ? 0.45 : 1, transition: "opacity 0.15s",
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <span style={{ ...dim, fontSize: "0.8rem" }}>{rd.label} · REVIEW</span>
-          <button onClick={() => setReviewRound(null)} style={{
-            background: "transparent", border: "1px solid #333",
-            color: "#B0B0C0", fontSize: "0.8rem", letterSpacing: "0.15em",
-            padding: "0.4rem 0.9rem", cursor: "pointer", fontFamily: mono,
-          }}>CLOSE ✕</button>
+        RULE BREAK!
+      </button>
+      <button onClick={onAccept} disabled={disabled} style={{
+        flex: 1, padding: "clamp(14px,2.5vw,20px) 8px",
+        background: "transparent", border: "2px solid #2ECC71", borderRadius: "4px",
+        color: "#2ECC71", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700,
+        fontSize: "clamp(12px,1.8vw,16px)", letterSpacing: "0.04em",
+        opacity: disabled ? 0.45 : 1, transition: "opacity 0.15s",
+      }}>
+        ACCEPT
+      </button>
+    </div>
+  );
+}
+
+// FIX 3: noTransition prop. The rule-switch bar is driven by RAF.
+// Without noTransition, the CSS transition interpolates from the previous
+// bar value (e.g. 1.0) down to 0 when switchPct resets, appearing to go
+// backward. With noTransition, the bar is always exactly where RAF put it.
+function ProgressBar({ value, color = "#FFFFFF", noTransition = false }) {
+  return (
+    <div style={{ width: "100%", maxWidth: MAX_W, height: "3px", background: "rgba(255,255,255,0.12)", borderRadius: "2px", overflow: "hidden" }}>
+      <div style={{
+        height: "100%", width: `${Math.min(value, 1) * 100}%`,
+        background: color, borderRadius: "2px",
+        transition: noTransition ? "none" : "width 0.15s ease",
+      }} />
+    </div>
+  );
+}
+
+function PlayButton({ onClick, label = "PLAY" }) {
+  return (
+    <button onClick={onClick} style={{
+      width: "100%", maxWidth: MAX_W, padding: "clamp(16px,2.5vw,22px)",
+      background: "#FF4060", border: "none", borderRadius: "4px",
+      color: "#FFFFFF", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700,
+      fontSize: "clamp(13px,1.8vw,17px)", letterSpacing: "0.1em",
+    }}>
+      {label}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Intro screen
+// ─────────────────────────────────────────────────────────────────────────────
+function IntroScreen({ onPlay }) {
+  return (
+    <Shell>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", paddingTop: "8px", paddingBottom: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500, letterSpacing: "0.02em" }}>
+          <span>{DAILY.date}</span>
+          <span>DAILY #{DAILY.number}</span>
         </div>
 
-        {res.map((r, j) => {
-          const item = ritems[j];
-          if (!item) return null;
-          const isItemPairs = item.type === "pairs";
-          const showDivider = pts.includes(j);
-          const phaseIdx = item.phaseIndex ?? 0;
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FFFFFF", letterSpacing: "0.01em" }}>RULE</div>
+          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FF4060", letterSpacing: "0.01em" }}>BREAKER!</div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,2vw,16px)" }}>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>You'll be shown a rule.</p>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>Then, you'll be shown a series of words.</p>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>
+            If they satisfy the rule, you <span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span>.
+          </p>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>
+            If they don't, <span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span>
+          </p>
+        </div>
+
+        <div>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF" }}>Three rounds. You'll be timed.</p>
+          <p style={{ fontSize: "clamp(13px,1.6vw,16px)", color: "#888888", fontWeight: 400 }}>Rules change every single day.</p>
+        </div>
+
+        <PlayButton onClick={onPlay} label="PLAY" />
+      </div>
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Round intro screen
+// ─────────────────────────────────────────────────────────────────────────────
+function RoundIntroScreen({ rd, onReady }) {
+  const pStyle = { fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" };
+
+  return (
+    <Shell>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", paddingTop: "8px", paddingBottom: "8px" }}>
+        <div />
+        <div>
+          <RoundLabel label={rd.label} name={rd.name} />
+          <div style={{ height: "clamp(24px,4vw,48px)" }} />
+
+          {rd.id === 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.8vw,16px)" }}>
+              <p style={pStyle}>You'll be shown <span style={{ color: "#FF4060", fontWeight: 700 }}>one</span> rule.</p>
+              <p style={pStyle}>Then, you'll be shown <span style={{ fontWeight: 700 }}>25 words</span> one at a time.</p>
+              <p style={pStyle}>
+                If they satisfy the rule, you <span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span>.<br />
+                If they don't, <span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span>
+              </p>
+              <p style={{ ...pStyle, color: "#FF4060" }}>Midway through, that rule will change.</p>
+            </div>
+          )}
+
+          {rd.id === 1 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.8vw,16px)" }}>
+              <p style={pStyle}><span style={{ color: "#2ECC71", fontWeight: 700 }}>BOTH</span> words need to satisfy the rule.</p>
+              <p style={pStyle}>You'll be shown <span style={{ fontWeight: 700 }}>30 word pairs</span>.</p>
+              <p style={pStyle}>Best of luck.</p>
+            </div>
+          )}
+
+          {rd.id === 2 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.8vw,16px)" }}>
+              <p style={pStyle}>
+                For the last round, you'll be shown both{" "}
+                <span style={{ color: "#FF4060", fontWeight: 700 }}>single</span> and{" "}
+                <span style={{ color: "#FF4060", fontWeight: 700 }}>word pairs</span> randomly.
+              </p>
+              <p style={pStyle}>There'll be <span style={{ color: "#FF4060", fontWeight: 700 }}>3 rule switches</span> this time…</p>
+              <p style={{ ...pStyle, color: "#2ECC71" }}>and you'll go through 40 of these…<br />so keep up.</p>
+            </div>
+          )}
+        </div>
+
+        <PlayButton onClick={onReady} label="READY" />
+      </div>
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rule reveal screen (countdown)
+// ─────────────────────────────────────────────────────────────────────────────
+function RuleScreen({ rd, rule, countdown }) {
+  return (
+    <Shell>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "clamp(16px,3vw,28px)" }}>
+        <RoundLabel label={rd.label} name={rd.name} />
+        <div style={{ height: "clamp(8px,2vw,20px)" }} />
+        <p style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "#888888", fontWeight: 500, letterSpacing: "0.12em", alignSelf: "center" }}>
+          TODAY'S RULE:
+        </p>
+        <div style={{ width: "100%" }}>
+          <RuleBox rule={rule} />
+        </div>
+        <p style={{ alignSelf: "center", fontSize: "clamp(13px,1.8vw,17px)", color: "#FF4060", fontWeight: 700, letterSpacing: "0.08em", animation: "pulse 1s ease infinite" }}>
+          STARTING IN {countdown}…
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rule switch overlay
+// ─────────────────────────────────────────────────────────────────────────────
+function RuleSwitchScreen({ newRule, progress }) {
+  return (
+    <Shell>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,3vw,28px)" }}>
+        <p style={{ fontSize: "clamp(14px,2vw,18px)", color: "#FF4060", fontWeight: 700, letterSpacing: "0.1em" }}>
+          RULE CHANGE:
+        </p>
+        <RuleBox rule={newRule} />
+        <div style={{ width: "100%", marginTop: "4px" }}>
+          <ProgressBar value={progress} color="#2ECC71" noTransition />
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Game screen
+// FIX 2: No more early return for null displayItem.
+// Previously a different collapsed layout was returned when displayItem=null,
+// causing a layout reflow (and visible jump) on every single word transition.
+// Now the full layout is always rendered. The word area uses opacity:0 during
+// the brief blank frame between words, keeping layout stable. wordKey on each
+// word span re-triggers the CSS wordIn animation for a clean fade-in.
+// ─────────────────────────────────────────────────────────────────────────────
+function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer }) {
+  const fmt    = displayItem ? getItemFormat(rd, displayItem) : "single";
+  const isPair = fmt === "pair";
+
+  return (
+    <Shell flash={flash}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "clamp(12px,2vw,18px)" }}>
+
+        <RoundLabel label={rd.label} name={rd.name} />
+        <ProgressBar value={progress} />
+
+        <p style={{ fontSize: "clamp(12px,1.6vw,16px)", color: "#FF4060", fontWeight: 500, lineHeight: 1.4, minHeight: "1.4em" }}>
+          {rule}
+        </p>
+
+        {/* Word area — opacity 0 while blank, never unmounts so layout is stable */}
+        <div style={{ width: "100%", opacity: displayItem ? 1 : 0, transition: displayItem ? "opacity 0.06s ease" : "none" }}>
+          {!isPair ? (
+            <WordBox>
+              <span key={wordKey} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.word ?? "", false), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block" }}>
+                {displayItem?.word ?? ""}
+              </span>
+            </WordBox>
+          ) : (
+            <div style={{ display: "flex", gap: "clamp(6px,1vw,10px)", width: "100%" }}>
+              <WordBox style={{ flex: 1, maxWidth: "none", minHeight: "clamp(90px,14vw,140px)" }}>
+                <span key={wordKey + "L"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.left ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", padding: "0 8px" }}>
+                  {displayItem?.left ?? ""}
+                </span>
+              </WordBox>
+              <WordBox style={{ flex: 1, maxWidth: "none", minHeight: "clamp(90px,14vw,140px)" }}>
+                <span key={wordKey + "R"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.right ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", padding: "0 8px" }}>
+                  {displayItem?.right ?? ""}
+                </span>
+              </WordBox>
+            </div>
+          )}
+        </div>
+
+        <ActionButtons disabled={!active} onRuleBreak={() => onAnswer(false)} onAccept={() => onAnswer(true)} />
+      </div>
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Results screen
+// ─────────────────────────────────────────────────────────────────────────────
+function ResultsScreen({ allResults, times }) {
+  const [copied, setCopied] = useState(false);
+  const [review, setReview] = useState(null);
+
+  const totalCorrect = allResults.flat().filter(x => x.correct).length;
+  const totalItems   = DAILY.rounds.reduce((a, r) => a + r.total, 0);
+  const totalTime    = times.reduce((a, b) => a + b, 0);
+  const overallGrade = getOverallGrade(totalCorrect, totalItems);
+
+  function buildShare() {
+    const lines = [`RULE BREAKER! #${DAILY.number}`, ""];
+    DAILY.rounds.forEach((r, i) => {
+      const res     = allResults[i] || [];
+      const correct = res.filter(x => x.correct).length;
+      const dots    = res.map(x => x.correct ? "🟢" : "🔴").join("");
+      lines.push(`${r.label}: ${r.name}`);
+      lines.push(dots);
+      lines.push(`${formatTime(times[i])} · ${correct}/${r.total} · ${getGrade(correct, r.total)}`);
+      lines.push("");
+    });
+    lines.push(`Total: ${formatTime(totalTime)}`);
+    lines.push("https://rule-breaker-three.vercel.app/");
+    return lines.join("\n");
+  }
+
+  function handleShare() {
+    navigator.clipboard.writeText(buildShare())
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+      .catch(() => {});
+  }
+
+  return (
+    <Shell>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500, marginBottom: "clamp(14px,2.5vw,24px)" }}>
+            <span>{DAILY.date}</span>
+            <span>DAILY #{DAILY.number}</span>
+          </div>
+          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(36px,8vw,60px)", color: "#FFFFFF", lineHeight: 1 }}>
+            {overallGrade}
+          </div>
+          <p style={{ fontSize: "clamp(12px,1.6vw,15px)", color: "#888888", marginTop: "6px" }}>
+            {totalCorrect}/{totalItems} correct · {formatTime(totalTime)}
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {DAILY.rounds.map((r, i) => {
+            const res     = allResults[i] || [];
+            const correct = res.filter(x => x.correct).length;
+            const grade   = getGrade(correct, r.total);
+            const dots    = res.map(x => x.correct ? "🟢" : "🔴").join("");
+            return (
+              <button key={i} onClick={() => setReview(i)} style={{ width: "100%", background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "6px", padding: "14px 16px", textAlign: "left", cursor: "pointer", color: "#FFFFFF" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <span style={{ fontWeight: 700, fontSize: "clamp(12px,1.6vw,15px)", color: "#FFFFFF" }}>
+                    {r.label}: <span style={{ color: "#FF4060" }}>{r.name}</span>
+                  </span>
+                  <span style={{ fontWeight: 700, fontSize: "clamp(12px,1.6vw,15px)", color: "#FFFFFF" }}>{grade}</span>
+                </div>
+                <div style={{ fontSize: "clamp(10px,1.4vw,13px)", color: "#888888", marginBottom: "6px" }}>
+                  {correct}/{r.total} · {formatTime(times[i])}
+                </div>
+                <div style={{ fontSize: "11px", lineHeight: 1.6, wordBreak: "break-all" }}>
+                  {dots}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <PlayButton onClick={handleShare} label={copied ? "COPIED!" : "SHARE RESULTS"} />
+      </div>
+
+      {review !== null && (
+        <ReviewModal roundIdx={review} results={allResults[review] || []} onClose={() => setReview(null)} />
+      )}
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Review modal
+// ─────────────────────────────────────────────────────────────────────────────
+function ReviewModal({ roundIdx, results, onClose }) {
+  const rd = DAILY.rounds[roundIdx];
+  let currentPhase = 0;
+
+  return (
+    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.94)", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 100, overflowY: "auto", padding: "24px 20px", color: "#FFFFFF" }}>
+      <div style={{ width: "100%", maxWidth: MAX_W }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+          <span style={{ fontWeight: 700, fontSize: "clamp(14px,2vw,17px)", color: "#FFFFFF" }}>
+            {rd.label}: <span style={{ color: "#FF4060" }}>{rd.name}</span>
+          </span>
+          <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", borderRadius: "4px", color: "#FFFFFF", padding: "8px 16px", fontSize: "13px", fontWeight: 600 }}>
+            CLOSE
+          </button>
+        </div>
+
+        <div style={{ textAlign: "center", padding: "8px 0 12px", color: "#888888", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
+          RULE: {rd.rules[0]}
+        </div>
+
+        {results.map((r, i) => {
+          const item = r.item;
+          const inv  = rd.inversionPoints.includes(i);
+          if (inv) currentPhase++;
+          const fmt  = getItemFormat(rd, item);
+          const wordDisplay = fmt === "pair" ? `${item.left} · ${item.right}` : item.word;
 
           return (
-            <div key={j}>
-              {showDivider && (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: "0.5rem",
-                  margin: "1rem 0", color: "#FF4D6D",
-                  fontSize: "0.65rem", letterSpacing: "0.2em",
-                }}>
-                  <div style={{ flex: 1, height: 1, background: "#2A1A1A" }} />
-                  <span>
-                    {isMixed && rd.phases?.[phaseIdx - 1]?.type !== rd.phases?.[phaseIdx]?.type
-                      ? "FORMAT CHANGE \u00b7 " + ruleForItem(item).toUpperCase()
-                      : "RULE CHANGED \u00b7 " + ruleForItem(item).toUpperCase()}
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "#2A1A1A" }} />
+            <div key={i}>
+              {inv && (
+                <div style={{ textAlign: "center", padding: "10px 0", color: "#FF4060", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", borderTop: "1px solid rgba(255,64,96,0.25)", borderBottom: "1px solid rgba(255,64,96,0.25)", margin: "8px 0" }}>
+                  RULE CHANGE: {rd.rules[currentPhase]}
                 </div>
               )}
-              {isItemPairs ? (
-                <div style={{ display: "flex", alignItems: "center", borderBottom: "1px solid #1A1A24", padding: "0.55rem 0", gap: "0.5rem" }}>
-                  <span style={{ color: "#444", fontSize: "0.65rem", minWidth: 22, textAlign: "right" }}>{j + 1}</span>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: r.correct ? "#00FFB2" : "#FF4D6D" }} />
-                  <span style={{ flex: 1, textAlign: "right", fontSize: "0.9rem", fontWeight: 700, color: item.correctSide === "left" ? "#00FFB2" : "#555" }}>{item.left}</span>
-                  <span style={{ color: "#333", fontSize: "0.7rem" }}>·</span>
-                  <span style={{ flex: 1, textAlign: "left", fontSize: "0.9rem", fontWeight: 700, color: item.correctSide === "right" ? "#00FFB2" : "#555" }}>{item.right}</span>
-                  {item.correctSide === null && <span style={{ color: "#555", fontSize: "0.65rem" }}>(none)</span>}
-                </div>
-              ) : (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", borderBottom: "1px solid #1A1A24", padding: "0.55rem 0" }}>
-                  <span style={{ color: "#444", fontSize: "0.65rem", minWidth: 22, textAlign: "right" }}>{j + 1}</span>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: r.correct ? "#00FFB2" : "#FF4D6D" }} />
-                  <span style={{ fontSize: "0.95rem", fontWeight: 700, color: r.correct ? "#00FFB2" : "#FF4D6D", flex: 1 }}>{item.word}</span>
-                  <span style={{ color: "#555", fontSize: "0.65rem" }}>{item.shouldTap ? "ACCEPT" : "RULE BREAK"}</span>
-                </div>
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: "14px", flexShrink: 0 }}>{r.correct ? "🟢" : "🔴"}</span>
+                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: fmt === "pair" ? "clamp(13px,1.8vw,16px)" : "clamp(16px,2.2vw,20px)", color: r.correct ? "#FFFFFF" : "rgba(255,255,255,0.35)", flex: 1 }}>
+                  {wordDisplay}
+                </span>
+                <span style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.04em", flexShrink: 0, color: item.shouldAccept ? "#2ECC71" : "#FF4060" }}>
+                  {item.shouldAccept ? "ACCEPT" : "RULE BREAK"}
+                </span>
+              </div>
             </div>
           );
         })}
-
-        <button onClick={() => setReviewRound(null)} style={{
-          background: "#1A1A28", color: "#B0B0C0", border: "1px solid #2A2A3A",
-          padding: "1.25rem 2rem", fontSize: "1rem", fontWeight: 900,
-          letterSpacing: "0.2em", cursor: "pointer", fontFamily: mono,
-          width: "100%", marginTop: "1.5rem",
-        }}>BACK TO RESULTS</button>
       </div>
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────────────────────
 export default function RuleBreaker() {
-  const [screen,          setScreen        ] = useState(SCREENS.INTRO);
-  const [currentRound,    setCurrentRound  ] = useState(0);
-  const [items,           setItems         ] = useState([]);
-  const [currentIndex,    setCurrentIndex  ] = useState(0);
-  const [wordVisible,     setWordVisible   ] = useState(false);
-  const [displayItem,     setDisplayItem   ] = useState(null);
-  const [buttonsLive,     setButtonsLive   ] = useState(false);
-  const [paused,          setPaused        ] = useState(false);
-  const [showInversion,   setShowInversion ] = useState(false);
-  const [inversionText,   setInversionText ] = useState("");
-  const [inversionFormat, setInversionFormat] = useState(null);
-  const [ruleCountdown,   setRuleCountdown ] = useState(3);
-  const [wordColor,       setWordColor     ] = useState(null);
-  const [r2Feedback,      setR2Feedback    ] = useState(null);
-  const [penaltyActive,   setPenaltyActive ] = useState(false);
-  const [roundResults,    setRoundResults  ] = useState([null, null, null]);
-  const [roundTimes,      setRoundTimes    ] = useState([null, null, null]);
-  const [roundItems,      setRoundItems    ] = useState([null, null, null]);
-  const [liveTime,        setLiveTime      ] = useState(0);
-  const [copied,          setCopied        ] = useState(false);
-  const [reviewRound,     setReviewRound   ] = useState(null);
+  const [screen,      setScreen]      = useState("intro");
+  const [round,       setRound]       = useState(0);
+  const [idx,         setIdx]         = useState(0);
+  const [phase,       setPhase]       = useState(0);
+  const [displayItem, setDisplayItem] = useState(null);
+  const [wordKey,     setWordKey]     = useState(0);  // increments on each new word to retrigger CSS animation
+  const [flash,       setFlash]       = useState(null);
+  const [active,      setActive]      = useState(false);
+  const [countdown,   setCountdown]   = useState(3);
+  const [switchPct,   setSwitchPct]   = useState(0);
+  const [allResults,  setAllResults]  = useState([[], [], []]);
+  const [times,       setTimes]       = useState([0, 0, 0]);
 
-  const timerRef        = useRef(null);
-  const resultsRef      = useRef([]);
-  const buttonTappedRef = useRef(false);
-  const buttonsLiveRef  = useRef(false);
-  const roundStartRef   = useRef(null);
-  const liveTimerRef    = useRef(null);
+  const startRef = useRef(null);
+  const animRef  = useRef(null);
 
-  const roundData  = DAILY.rounds[currentRound];
-  const TOTAL      = roundData?.total || 25;
-  const invPts     = roundData?.inversionPoints || [];
-  const ruleIndex  = invPts.reduce((acc, pt) => acc + (currentIndex >= pt ? 1 : 0), 0);
-  const ruleColor  = RULE_COLORS[ruleIndex] || RULE_COLORS[0];
-  const ruleText   = roundData?.rules?.[ruleIndex] || "";
-  const currentItem = items[currentIndex];
-  const isPairs    = currentItem?.type === "pairs";
-  const btnDisabled = !buttonsLive || penaltyActive;
+  const rd   = DAILY.rounds[round] ?? DAILY.rounds[0];
+  const rule = rd.rules[phase] ?? rd.rules[0];
+  const prog = idx / rd.total;
 
-  useEffect(() => { validatePuzzle(DAILY); }, []);
+  function loadItem(roundData, itemIdx) {
+    setDisplayItem(null);   // word area opacity → 0 immediately
+    setFlash(null);
+    setActive(false);
+    // Double RAF: guarantees iOS Safari paints the blank frame before new word
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setDisplayItem(getItem(roundData, itemIdx));
+        setWordKey(k => k + 1);
+        setTimeout(() => setActive(true), MIN_DISPLAY_MS);
+      })
+    );
+  }
 
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, []);
+  function doAdvance(r, i, p) {
+    const roundData = DAILY.rounds[r];
+    const next = i + 1;
 
-  useEffect(() => {
-    if (screen !== SCREENS.RULE) return;
-    const built = buildItems(roundData);
-    setItems(built);
-    setRoundItems(prev => { const u = [...prev]; u[currentRound] = built; return u; });
-    setCurrentIndex(0);
-    resultsRef.current      = [];
-    buttonTappedRef.current = false;
-    buttonsLiveRef.current  = false;
-    setWordColor(null);
-    setR2Feedback(null);
-    setButtonsLive(false);
-    setPenaltyActive(false);
-    setRuleCountdown(3);
-    const iv = setInterval(() => {
-      setRuleCountdown(n => {
-        if (n <= 1) { clearInterval(iv); setScreen(SCREENS.GAME); return 0; }
-        return n - 1;
-      });
-    }, 1000);
-    return () => clearInterval(iv);
-  }, [screen, currentRound]); // eslint-disable-line
-
-  useEffect(() => {
-    if (screen !== SCREENS.GAME || paused || items.length === 0 || currentIndex >= TOTAL) return;
-    buttonTappedRef.current = false;
-    buttonsLiveRef.current  = false;
-    setButtonsLive(false);
-    setPenaltyActive(false);
-    setWordColor(null);
-    setR2Feedback(null);
-    setWordVisible(false);
-    setDisplayItem(null);
-    // Short RAF delay before showing new word — forces iOS Safari to paint blank first
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      setDisplayItem(items[currentIndex] || null);
-      setWordVisible(true);
-    }));
-    if (currentIndex === 0) {
-      roundStartRef.current = Date.now();
-      setLiveTime(0);
-      clearInterval(liveTimerRef.current);
-      liveTimerRef.current = setInterval(() => {
-        setLiveTime(Date.now() - roundStartRef.current);
-      }, 100);
-    }
-    timerRef.current = setTimeout(() => {
-      buttonsLiveRef.current = true;
-      setButtonsLive(true);
-    }, MIN_DISPLAY_MS);
-    return () => clearTimeout(timerRef.current);
-  }, [screen, currentIndex, items, paused, TOTAL]);
-
-  const advanceWord = (next) => {
-    // Clear display immediately — iOS Safari sees empty element, no stacking possible
-    setWordVisible(false);
-    setDisplayItem(null);
-    setWordColor(null);
-    setR2Feedback(null);
-    setButtonsLive(false);
-    buttonsLiveRef.current = false;
-
-    setTimeout(() => {
-
-      if (invPts.includes(next)) {
-        const newRuleIdx = invPts.indexOf(next) + 1;
-        const newRule    = roundData.rules[newRuleIdx];
-        let formatChange = null;
-        if (roundData.type === "mixed") {
-          const oldType = roundData.phases[newRuleIdx - 1]?.type;
-          const newType = roundData.phases[newRuleIdx]?.type;
-          if (oldType !== newType) formatChange = newType;
-        }
-        clearInterval(liveTimerRef.current);
-        setPaused(true);
-        setShowInversion(true);
-        setInversionText(newRule);
-        setInversionFormat(formatChange);
-        setTimeout(() => {
-          setShowInversion(false);
-          setInversionFormat(null);
-          setPaused(false);
-          liveTimerRef.current = setInterval(() => {
-            setLiveTime(Date.now() - roundStartRef.current);
-          }, 100);
-          setCurrentIndex(next);
-        }, INVERSION_MS);
-        return;
+    if (next >= roundData.total) {
+      const elapsed = Date.now() - startRef.current;
+      setTimes(prev => { const n = [...prev]; n[r] = elapsed; return n; });
+      if (r >= 2) {
+        setScreen("results");
+      } else {
+        setRound(r + 1);
+        setIdx(0);
+        setPhase(0);
+        setScreen("round_intro");
       }
-
-      if (next >= TOTAL) {
-        clearInterval(liveTimerRef.current);
-        const roundTime = Date.now() - roundStartRef.current;
-        setRoundTimes(prev   => { const u = [...prev]; u[currentRound] = roundTime; return u; });
-        setRoundResults(prev => { const u = [...prev]; u[currentRound] = [...resultsRef.current]; return u; });
-        setScreen(SCREENS.ROUND_SUMMARY);
-        return;
-      }
-
-      setCurrentIndex(next);
-    }, 120);
-  };
-
-  const handleChoice = (choice) => {
-    if (!buttonsLiveRef.current || buttonTappedRef.current) return;
-    buttonTappedRef.current = true;
-    const item = items[currentIndex];
-    const itemIsPairs = item?.type === "pairs";
-    let correct;
-    if (itemIsPairs) {
-      correct = choice === item.correctSide;
-      setR2Feedback({ tappedSide: choice, correct, correctSide: item.correctSide });
-    } else {
-      const playerAccepts = choice === "accept";
-      correct = playerAccepts === item.shouldTap;
-      setWordColor(correct ? "green" : "red");
+      return;
     }
-    resultsRef.current.push({ correct });
-    if (correct) {
-      setTimeout(() => advanceWord(currentIndex + 1), ADVANCE_MS);
-    } else {
-      setPenaltyActive(true);
-      setTimeout(() => {
-        setPenaltyActive(false);
-        advanceWord(currentIndex + 1);
-      }, PENALTY_MS);
+
+    if (roundData.inversionPoints.includes(next)) {
+      setPhase(p + 1);
+      setIdx(next);
+      setScreen("rule_switch");
+      return;
     }
-  };
 
-  const goNext = () => {
-    const next = currentRound + 1;
-    if (next >= DAILY.rounds.length) setScreen(SCREENS.RESULTS);
-    else { setCurrentRound(next); setScreen(SCREENS.ROUND_INTRO); }
-  };
+    setIdx(next);
+    loadItem(roundData, next);
+  }
 
-  const getScore   = (i) => (roundResults[i] || []).filter(x => x.correct).length;
-  const getTotal   = (i) => DAILY.rounds[i].total;
-  const totalScore = [0, 1, 2].reduce((s, i) => s + getScore(i), 0);
-  const totalWords = [0, 1, 2].reduce((s, i) => s + getTotal(i), 0);
-  const totalTime  = roundTimes.every(t => t !== null) ? roundTimes.reduce((s, t) => s + t, 0) : null;
-
-  const grade = (pct) => {
-    if (pct === 1)   return { label: "PERFECT",   color: "#00FFB2" };
-    if (pct >= 0.88) return { label: "SHARP",     color: "#00FFB2" };
-    if (pct >= 0.72) return { label: "SOLID",     color: "#FFE14D" };
-    if (pct >= 0.52) return { label: "LEARNING",  color: "#FF9A3C" };
-    return                  { label: "MISSED IT", color: "#FF4D6D" };
-  };
-
-  const overallGrade = () => {
-    const pct = totalScore / totalWords;
-    if (pct === 1)   return { label: "FLAWLESS",  color: "#00FFB2" };
-    if (pct >= 0.88) return { label: "SHARP",     color: "#00FFB2" };
-    if (pct >= 0.72) return { label: "SOLID",     color: "#FFE14D" };
-    if (pct >= 0.52) return { label: "LEARNING",  color: "#FF9A3C" };
-    return                  { label: "ROUGH DAY", color: "#FF4D6D" };
-  };
-
-  const shareText = () => {
-    const lines = ["Rule Breaker #" + DAILY.day, totalScore + "/" + totalWords + " \u00b7 " + formatTime(totalTime), ""];
-    [0, 1, 2].forEach(i => {
-      const r = roundResults[i]; if (!r) return;
-      lines.push("R" + (i+1) + ": " + getScore(i) + "/" + getTotal(i) + " \u00b7 " + formatTime(roundTimes[i]));
-      lines.push(r.map(x => x.correct ? "\uD83D\uDFE2" : "\uD83D\uDD34").join(""));
+  function handleAnswer(accepted) {
+    if (!active || !displayItem) return;
+    setActive(false);
+    const correct = accepted === displayItem.shouldAccept;
+    setFlash(correct ? "green" : "red");
+    const r = round, i = idx, p = phase;
+    setAllResults(prev => {
+      const n = prev.map(a => [...a]);
+      n[r].push({ correct, item: displayItem });
+      return n;
     });
-    lines.push("", "rulebreaker.game");
-    return lines.join("\n");
-  };
+    setTimeout(() => {
+      setFlash(null);
+      doAdvance(r, i, p);
+    }, correct ? ADVANCE_MS : PENALTY_MS);
+  }
 
-  const getSideBg = (side) => {
-    if (!r2Feedback) return "transparent";
-    const { tappedSide, correct, correctSide } = r2Feedback;
-    if (correct) {
-      if (tappedSide === side) return "rgba(0,255,178,0.18)";
-      if (tappedSide === null) return "rgba(0,255,178,0.07)";
-      return "transparent";
+  // Rule reveal countdown
+  useEffect(() => {
+    if (screen !== "rule") return;
+    setCountdown(3);
+    const t1 = setTimeout(() => setCountdown(2), 1000);
+    const t2 = setTimeout(() => setCountdown(1), 2000);
+    const t3 = setTimeout(() => {
+      const r         = round;
+      const roundData = DAILY.rounds[r];
+      startRef.current = Date.now();
+      setIdx(0);
+      setPhase(0);
+      setScreen("game");
+      loadItem(roundData, 0);
+    }, 3000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [screen]); // eslint-disable-line
+
+  // Rule switch RAF progress bar
+  // Captures round/idx from committed state after React batches doAdvance's
+  // setPhase/setIdx/setScreen calls. noTransition on ProgressBar ensures the
+  // bar never interpolates backward when switchPct resets to 0.
+  useEffect(() => {
+    if (screen !== "rule_switch") return;
+    setSwitchPct(0);
+    const startT    = Date.now();
+    const capturedR = round;
+    const capturedI = idx;
+
+    function tick() {
+      const pct = Math.min((Date.now() - startT) / INVERSION_MS, 1);
+      setSwitchPct(pct);
+      if (pct < 1) {
+        animRef.current = requestAnimationFrame(tick);
+      } else {
+        cancelAnimationFrame(animRef.current);
+        const roundData = DAILY.rounds[capturedR];
+        setScreen("game");
+        loadItem(roundData, capturedI);
+      }
     }
-    if (tappedSide !== null && tappedSide === side) return "rgba(255,77,109,0.2)";
-    if (tappedSide === null && correctSide === side) return "rgba(255,77,109,0.2)";
-    return "transparent";
-  };
 
-  const getSideColor = (side) => {
-    if (!r2Feedback) return "#F0F0F0";
-    const { tappedSide, correct, correctSide } = r2Feedback;
-    if (correct) {
-      if (tappedSide === side || tappedSide === null) return "#00FFB2";
-      return "#F0F0F0";
-    }
-    if (tappedSide !== null && tappedSide === side) return "#FF4D6D";
-    if (tappedSide === null && correctSide === side) return "#FF4D6D";
-    return "#F0F0F0";
-  };
+    animRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [screen]); // eslint-disable-line
 
-  const singleColor = () => {
-    if (wordColor === "green") return "#00FFB2";
-    if (wordColor === "red")   return "#FF4D6D";
-    return "#F0F0F0";
-  };
-
-  const progress  = ((currentIndex + 1) / TOTAL) * 100;
-  const mono      = "'Courier New', monospace";
-  const dim       = { color: "#B0B0C0", fontSize: "0.9rem", letterSpacing: "0.2em" };
-  const primaryBtn = {
-    background: "#FF4D6D", color: "#0A0A0F", border: "none",
-    padding: "1.25rem 2rem", fontSize: "1rem", fontWeight: 900,
-    letterSpacing: "0.2em", cursor: "pointer", fontFamily: mono, width: "100%",
-  };
-
-  return (
-    <div style={{
-      background: "#0A0A0F", fontFamily: mono, userSelect: "none",
-      position: "fixed", inset: 0, overflow: "hidden",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", width: "100%",
-    }}>
-      <div style={{ position: "fixed", inset: 0, opacity: 0.03, pointerEvents: "none",
-        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")" }} />
-
-      <ReviewModal reviewRound={reviewRound} roundResults={roundResults} roundItems={roundItems} setReviewRound={setReviewRound} />
-
-      {screen !== SCREENS.INTRO && screen !== SCREENS.RESULTS && (
-        <button onClick={() => {
-          const next = currentRound + 1;
-          const fake = Array(DAILY.rounds[currentRound].total).fill({ correct: true });
-          setRoundResults(prev => { const u = [...prev]; u[currentRound] = fake; return u; });
-          setRoundTimes(prev => { const u = [...prev]; u[currentRound] = 12000; return u; });
-          setRoundItems(prev => { const u = [...prev]; if (!u[currentRound]) u[currentRound] = buildItems(DAILY.rounds[currentRound]); return u; });
-          if (next >= DAILY.rounds.length) setScreen(SCREENS.RESULTS);
-          else { setCurrentRound(next); setScreen(SCREENS.ROUND_INTRO); }
-        }} style={{
-          position: "fixed", top: "1rem", right: "1rem", zIndex: 300,
-          background: "rgba(255,255,255,0.06)", color: "#666",
-          border: "1px solid #333", padding: "0.4rem 0.8rem",
-          fontSize: "0.65rem", letterSpacing: "0.15em",
-          cursor: "pointer", fontFamily: mono,
-        }}>SKIP {"\u2192"}</button>
-      )}
-
-      {showInversion && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 100,
-          background: "rgba(10,10,15,0.97)",
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          animation: "fadeIn 0.15s ease",
-        }}>
-          <div style={{ color: "#FF4D6D", fontSize: "1rem", letterSpacing: "0.3em", marginBottom: "0.75rem" }}>
-            {"\u26A0"} RULE CHANGED
-          </div>
-          {inversionFormat && (
-            <div style={{ color: "#FFE14D", fontSize: "0.8rem", letterSpacing: "0.25em", marginBottom: "0.75rem" }}>
-              {inversionFormat === "pairs" ? "\u21C4 SWITCHING TO PAIRS FORMAT" : "\u21C4 SWITCHING TO SINGLES FORMAT"}
-            </div>
-          )}
-          <div style={{ color: "#F0F0F0", fontSize: "clamp(1.4rem,4.5vw,2.2rem)", fontWeight: 900, textAlign: "center", padding: "0 2.5rem", lineHeight: 1.6 }}>
-            {inversionText}
-          </div>
-          <div style={{ marginTop: "2rem", width: 140, height: 2, background: "#1A1A24", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", left: 0, top: 0, height: "100%", background: "#FF4D6D", animation: "drain " + INVERSION_MS + "ms linear forwards" }} />
-          </div>
-        </div>
-      )}
-
-      {screen === SCREENS.INTRO && (
-        <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto", overflow: "hidden", width: "100%" }}>
-          <div style={{ ...dim, marginBottom: "1.5rem" }}>DAILY #{String(DAILY.day).padStart(3, "0")}</div>
-          <h1 style={{ color: "#F0F0F0", fontSize: "clamp(2.8rem,10vw,4.5rem)", fontWeight: 900, letterSpacing: "-0.02em", margin: "0 0 0.5rem", lineHeight: 1 }}>
-            RULE<br /><span style={{ color: "#FF4D6D" }}>BREAKER</span>
-          </h1>
-          <p style={{ color: "#C0C0D0", fontSize: "1.1rem", letterSpacing: "0.04em", margin: "1.5rem 0 2.5rem", lineHeight: 2 }}>
-            Words flash. Rules change.<br />
-            Three rounds. Each harder than the last.<br />
-            <span style={{ color: "#FF4D6D" }}>The rules change with every puzzle.</span>
-          </p>
-          <button style={primaryBtn} onClick={() => { setCurrentRound(0); setScreen(SCREENS.ROUND_INTRO); }}
-            onMouseEnter={e => e.target.style.background = "#FF2D55"}
-            onMouseLeave={e => e.target.style.background = "#FF4D6D"}>PLAY</button>
-        </div>
-      )}
-
-      {screen === SCREENS.ROUND_INTRO && (
-        <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto", overflow: "hidden", width: "100%" }}>
-          <div style={{ ...dim, marginBottom: "2rem" }}>{roundData.label}</div>
-          <div style={{ border: "1px solid #222", padding: "2.5rem 2rem", marginBottom: "2.5rem", width: "100%" }}>
-            {roundData.desc.split("\n").map((line, i) => (
-              <p key={i} style={{ color: i === 2 ? "#FF4D6D" : "#F0F0F0", fontSize: "1.2rem", fontWeight: 700, letterSpacing: "0.03em", margin: i === 0 ? 0 : "0.75rem 0 0", lineHeight: 1.6 }}>{line}</p>
-            ))}
-          </div>
-          <button style={primaryBtn} onClick={() => setScreen(SCREENS.RULE)}>READY</button>
-        </div>
-      )}
-
-      {screen === SCREENS.RULE && (
-        <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto", overflow: "hidden", width: "100%" }}>
-          <div style={{ ...dim, marginBottom: "0.5rem" }}>{roundData.label}</div>
-          <div style={{ ...dim, color: "#888", marginBottom: "2rem" }}>{"TODAY'S RULE"}</div>
-          <div style={{ border: "1px solid #222", padding: "3rem 2.5rem", position: "relative", width: "100%" }}>
-            <div style={{ position: "absolute", top: -1, left: 0, height: 2, background: "#FF4D6D", width: "100%", animation: "shrink 3000ms linear forwards" }} />
-            <p style={{ color: "#F0F0F0", fontSize: "clamp(1.3rem,4vw,1.8rem)", fontWeight: 700, letterSpacing: "0.02em", margin: 0, lineHeight: 1.5 }}>
-              {roundData.rules[0]}
-            </p>
-          </div>
-          <div style={{ ...dim, marginTop: "2rem" }}>STARTING IN {ruleCountdown}</div>
-        </div>
-      )}
-
-      {screen === SCREENS.GAME && !showInversion && (
-        <div style={{ height: "100vh", overflow: "hidden", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1.25rem" }}>
-          <div style={{ width: "100%", maxWidth: 600, boxSizing: "border-box" }}>
-
-            <div style={{ textAlign: "center", marginBottom: "1.5rem", color: "#C0C0D0", fontSize: "1.1rem", letterSpacing: "0.2em", fontVariantNumeric: "tabular-nums" }}>
-              {formatTime(liveTime)}
-            </div>
-
-            <div style={{ width: "100%", height: 3, background: "#1A1A24", marginBottom: "1rem" }}>
-              <div style={{ height: "100%", width: progress + "%", background: ruleColor, transition: "width 0.15s ease, background 0.4s ease" }} />
-            </div>
-
-            <div style={{ color: ruleColor, fontSize: "0.95rem", letterSpacing: "0.15em", marginBottom: "1.25rem", minHeight: "1.5rem", transition: "color 0.3s ease", textAlign: "center" }}>
-              {ruleText.toUpperCase()}
-            </div>
-
-            {!isPairs && (
-              <>
-                <div style={{ height: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{
-                    fontSize: "clamp(2.8rem,10vw,5rem)", fontWeight: 900, letterSpacing: "0.1em",
-                    color: singleColor(),
-                    opacity: (wordVisible || wordColor) ? 1 : 0,
-                    transition: "opacity 0.08s ease, color 0.08s ease",
-                  }}>{displayItem?.word}</span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", width: "100%" }}>
-                  <button onClick={() => handleChoice("rulebreak")} style={{
-                    padding: "1.25rem 1rem", fontFamily: mono, fontWeight: 900,
-                    fontSize: "clamp(0.9rem,2.5vw,1.1rem)", letterSpacing: "0.1em", whiteSpace: "nowrap",
-                    background: btnDisabled ? "#150508" : "rgba(255,77,109,0.12)",
-                    color: btnDisabled ? "#3A1A20" : "#FF4D6D",
-                    border: "1.5px solid " + (btnDisabled ? "#2A0A10" : "#FF4D6D"),
-                    cursor: btnDisabled ? "default" : "pointer", transition: "all 0.1s ease",
-                  }}>RULE BREAK!</button>
-                  <button onClick={() => handleChoice("accept")} style={{
-                    padding: "1.25rem 1rem", fontFamily: mono, fontWeight: 900,
-                    fontSize: "clamp(0.9rem,2.5vw,1.1rem)", letterSpacing: "0.1em", whiteSpace: "nowrap",
-                    background: btnDisabled ? "#050F08" : "rgba(0,255,178,0.08)",
-                    color: btnDisabled ? "#0A2A18" : "#00FFB2",
-                    border: "1.5px solid " + (btnDisabled ? "#0A2018" : "#00FFB2"),
-                    cursor: btnDisabled ? "default" : "pointer", transition: "all 0.1s ease",
-                  }}>ACCEPT</button>
-                </div>
-              </>
-            )}
-
-            {isPairs && (
-              <div style={{ width: "100%" }}>
-                <div style={{ display: "flex", height: "14rem" }}>
-                  {["left", "right"].map(side => (
-                    <div key={side} onClick={() => handleChoice(side)} style={{
-                      width: "50%", flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      borderRight: side === "left" ? "1px solid #333" : "none",
-                      background: getSideBg(side),
-                      cursor: btnDisabled ? "default" : "pointer",
-                      opacity: btnDisabled ? 0.55 : 1,
-                      transition: "background 0.08s, opacity 0.1s",
-                    }}>
-                      <span style={{
-                        fontSize: "clamp(1rem,3.5vw,2.2rem)", fontWeight: 900, letterSpacing: "0.06em",
-                        color: getSideColor(side),
-                        opacity: (wordVisible || r2Feedback) ? 1 : 0,
-                        transition: "opacity 0.08s ease, color 0.08s ease",
-                        whiteSpace: "nowrap", textAlign: "center", padding: "0 1.5rem",
-                      }}>{displayItem?.[side]}</span>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => handleChoice(null)} style={{
-                  width: "100%", padding: "1.25rem", marginTop: "1.5rem",
-                  fontFamily: mono, fontWeight: 900,
-                  fontSize: "clamp(0.9rem,2.5vw,1.1rem)", letterSpacing: "0.15em",
-                  background: btnDisabled ? "#0F0F18" : "rgba(255,255,255,0.04)",
-                  color: btnDisabled ? "#2A2A3A" : "#888",
-                  border: "1.5px solid " + (btnDisabled ? "#1A1A28" : "#444"),
-                  cursor: btnDisabled ? "default" : "pointer", transition: "all 0.1s ease",
-                }}>NONE!</button>
-              </div>
-            )}
-
-            <div style={{ color: "#B0B0C0", fontSize: "0.9rem", letterSpacing: "0.2em", textAlign: "center", marginTop: "1.5rem" }}>
-              {currentIndex + 1} / {TOTAL}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {screen === SCREENS.ROUND_SUMMARY && (() => {
-        const T = getTotal(currentRound), score = getScore(currentRound), time = roundTimes[currentRound];
-        const g = grade(score / T), isLast = currentRound === DAILY.rounds.length - 1;
-        return (
-          <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem", maxWidth: 560, margin: "0 auto", overflow: "hidden", width: "100%" }}>
-            <div style={{ ...dim, marginBottom: "1.5rem" }}>{roundData.label} COMPLETE</div>
-            <div style={{ color: g.color, fontSize: "clamp(2.5rem,9vw,3.5rem)", fontWeight: 900, letterSpacing: "0.1em", marginBottom: "0.75rem" }}>{g.label}</div>
-            <div style={{ color: "#E0E0E0", fontSize: "1.4rem", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>{score} / {T} correct</div>
-            <div style={{ color: "#999", fontSize: "1.2rem", letterSpacing: "0.08em", marginBottom: "2.5rem" }}>{formatTime(time)}</div>
-            <button style={primaryBtn} onClick={goNext}>{isLast ? "SEE RESULTS" : "NEXT ROUND \u2192"}</button>
-          </div>
-        );
-      })()}
-
-      {screen === SCREENS.RESULTS && (() => {
-        const og = overallGrade();
-        return (
-          <div style={{ height: "100vh", overflowY: "auto", maxWidth: 600, margin: "0 auto", padding: "2rem 2rem 1rem", textAlign: "center", width: "100%" }}>
-            <div style={{ ...dim, marginBottom: "1.5rem" }}>RULE BREAKER #{String(DAILY.day).padStart(3, "0")}</div>
-            <div style={{ color: og.color, fontSize: "clamp(2.5rem,9vw,3.8rem)", fontWeight: 900, letterSpacing: "0.1em", marginBottom: "0.4rem" }}>{og.label}</div>
-            <div style={{ color: "#E0E0E0", fontSize: "1.4rem", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>{totalScore} / {totalWords} correct</div>
-            <div style={{ color: "#999", fontSize: "1.1rem", letterSpacing: "0.08em", marginBottom: "2.5rem" }}>total time · {formatTime(totalTime)}</div>
-
-            {[0, 1, 2].map(i => {
-              const res = roundResults[i] || [], T = getTotal(i), sc = getScore(i);
-              const g = grade(sc / T), rd = DAILY.rounds[i], pts = rd.inversionPoints || [];
-              return (
-                <div key={i} onClick={() => setReviewRound(i)} style={{ background: "#0F0F18", border: "1px solid #1E1E2E", padding: "1.5rem", marginBottom: "1.25rem", textAlign: "left", cursor: "pointer", transition: "border-color 0.15s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "#444"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "#1E1E2E"}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.3rem" }}>
-                    <span style={{ ...dim }}>{rd.label}</span>
-                    <span style={{ color: g.color, fontSize: "1.1rem", fontWeight: 900, letterSpacing: "0.1em" }}>{sc}/{T}</span>
-                  </div>
-                  <div style={{ color: "#777", fontSize: "1rem", letterSpacing: "0.08em", marginBottom: "1rem" }}>{formatTime(roundTimes[i])}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                    {res.map((r, j) => {
-                      const phase = pts.reduce((a, pt) => a + (j >= pt ? 1 : 0), 0);
-                      const opac  = pts.length === 0 ? 1 : 0.35 + phase * 0.325;
-                      return <div key={j} style={{ width: 14, height: 14, borderRadius: 2, boxSizing: "border-box", background: r.correct ? "#00FFB2" : "#FF4D6D", opacity: opac, border: pts.includes(j) ? "1.5px solid #FF4D6D" : "1.5px solid transparent" }} />;
-                    })}
-                  </div>
-                  {pts.length > 0 && <div style={{ color: "#555", fontSize: "0.65rem", letterSpacing: "0.08em", marginTop: "0.5rem" }}>brighter = later phase · red border = switch point</div>}
-                  <div style={{ color: "#666", fontSize: "0.65rem", letterSpacing: "0.15em", marginTop: "0.75rem", textAlign: "right" }}>TAP TO REVIEW {"\u2192"}</div>
-                </div>
-              );
-            })}
-
-            <button style={{ ...primaryBtn, background: copied ? "#00FFB2" : "#FF4D6D", marginTop: "0.5rem", transition: "background 0.2s" }}
-              onClick={() => { navigator.clipboard.writeText(shareText()); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-              {copied ? "COPIED!" : "SHARE RESULT"}
-            </button>
-            <div style={{ color: "#888", fontSize: "0.75rem", letterSpacing: "0.12em", marginTop: "1rem", paddingBottom: "0.5rem" }}>NEXT PUZZLE IN 24H</div>
-          </div>
-        );
-      })()}
-
-      <style>{"html, body { overflow: hidden; height: 100%; } @keyframes shrink { from { width: 100%; } to { width: 0%; } } @keyframes drain { from { width: 100%; } to { width: 0%; } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } * { -webkit-tap-highlight-color: transparent; }"}</style>
-    </div>
-  );
+  if (screen === "intro")       return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} />;
+  if (screen === "round_intro") return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} />;
+  if (screen === "rule")        return <RuleScreen rd={rd} rule={rule} countdown={countdown} />;
+  if (screen === "rule_switch") return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} />;
+  if (screen === "game")        return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} />;
+  if (screen === "results")     return <ResultsScreen allResults={allResults} times={times} />;
+  return null;
 }
