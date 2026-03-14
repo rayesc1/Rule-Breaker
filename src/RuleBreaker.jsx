@@ -227,16 +227,61 @@ function getOverallGrade(correct, total) {
 function wordFontSize(word, isPair) {
   const l = (word || "").length;
   if (isPair) {
-    if (l <= 3) return "clamp(26px, 5vw, 46px)";
-    if (l <= 5) return "clamp(20px, 4vw, 38px)";
-    if (l <= 7) return "clamp(16px, 3vw, 30px)";
-    return "clamp(13px, 2.5vw, 22px)";
+    if (l <= 3) return "clamp(36px, 8vw, 52px)";
+    if (l <= 4) return "clamp(30px, 7vw, 44px)";
+    if (l <= 5) return "clamp(26px, 6vw, 38px)";
+    if (l <= 6) return "clamp(22px, 5vw, 30px)";
+    if (l <= 7) return "clamp(18px, 4vw, 24px)";
+    if (l <= 8) return "clamp(15px, 3.5vw, 20px)";
+    return "clamp(12px, 2.8vw, 16px)";
   }
   if (l <= 4)  return "clamp(56px, 12vw, 88px)";
   if (l <= 6)  return "clamp(44px, 9vw, 70px)";
   if (l <= 8)  return "clamp(34px, 7vw, 56px)";
   if (l <= 10) return "clamp(26px, 5.5vw, 42px)";
   return "clamp(20px, 4vw, 32px)";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shuffle helpers
+// Shuffles within each phase segment so answer patterns are never obvious,
+// while keeping items on the correct side of every inversion point boundary.
+// ─────────────────────────────────────────────────────────────────────────────
+function fisherYates(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function shuffleRoundItems(rd) {
+  // Build phase segments based on inversionPoints, shuffle each independently,
+  // then reassemble. This keeps each item on the correct rule-phase side.
+  const arr = rd.type === "single" ? rd.words
+            : rd.type === "pairs"  ? rd.pairs
+            : rd.items;
+
+  const boundaries = [...rd.inversionPoints, arr.length];
+  let start = 0;
+  const shuffled = [];
+  for (const end of boundaries) {
+    const segment = arr.slice(start, end);
+    shuffled.push(...fisherYates(segment));
+    start = end;
+  }
+
+  if (rd.type === "single") return { ...rd, words: shuffled };
+  if (rd.type === "pairs")  return { ...rd, pairs: shuffled };
+  return { ...rd, items: shuffled };
+}
+
+function buildShuffledDaily() {
+  return {
+    ...DAILY,
+    rounds: DAILY.rounds.map(shuffleRoundItems),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,7 +305,7 @@ const STYLES = `
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared UI
 // ─────────────────────────────────────────────────────────────────────────────
-function Shell({ children, flash }) {
+function Shell({ children, flash, onSkip }) {
   const anim = flash === "green" ? "flashGreen 0.45s ease"
              : flash === "red"   ? "flashRed 0.45s ease"
              : "none";
@@ -272,6 +317,18 @@ function Shell({ children, flash }) {
       animation: anim, position: "relative", overflow: "hidden",
     }}>
       <style>{STYLES}</style>
+      {onSkip && (
+        <button onClick={onSkip} style={{
+          position: "absolute", top: "16px", right: "16px",
+          background: "transparent", border: "1px solid rgba(255,255,255,0.2)",
+          borderRadius: "4px", color: "rgba(255,255,255,0.35)",
+          fontFamily: "'Konkhmer Sleokchher',sans-serif",
+          fontSize: "11px", padding: "6px 12px", letterSpacing: "0.06em",
+          cursor: "pointer",
+        }}>
+          SKIP →
+        </button>
+      )}
       {children}
     </div>
   );
@@ -388,7 +445,7 @@ function IntroScreen({ onPlay }) {
           <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(52px,12vw,96px)", lineHeight: 0.95, color: "#FF4060", letterSpacing: "0.01em" }}>BREAKER!</div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,2vw,16px)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,2vw,16px)", textAlign: "center" }}>
           <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>You'll be shown a rule.</p>
           <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>Then, you'll be shown a series of words.</p>
           <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>
@@ -399,7 +456,7 @@ function IntroScreen({ onPlay }) {
           </p>
         </div>
 
-        <div>
+        <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF" }}>Three rounds. You'll be timed.</p>
           <p style={{ fontSize: "clamp(13px,1.6vw,16px)", color: "#888888", fontWeight: 400 }}>Rules change every single day.</p>
         </div>
@@ -413,14 +470,14 @@ function IntroScreen({ onPlay }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Round intro screen
 // ─────────────────────────────────────────────────────────────────────────────
-function RoundIntroScreen({ rd, onReady }) {
-  const pStyle = { fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" };
+function RoundIntroScreen({ rd, onReady, onSkip }) {
+  const pStyle = { fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF", textAlign: "center" };
 
   return (
-    <Shell>
+    <Shell onSkip={onSkip}>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", paddingTop: "8px", paddingBottom: "8px" }}>
         <div />
-        <div>
+        <div style={{ textAlign: "center" }}>
           <RoundLabel label={rd.label} name={rd.name} />
           <div style={{ height: "clamp(24px,4vw,48px)" }} />
 
@@ -466,10 +523,10 @@ function RoundIntroScreen({ rd, onReady }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule reveal screen (countdown)
 // ─────────────────────────────────────────────────────────────────────────────
-function RuleScreen({ rd, rule, countdown }) {
+function RuleScreen({ rd, rule, countdown, onSkip }) {
   return (
-    <Shell>
-      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "clamp(16px,3vw,28px)" }}>
+    <Shell onSkip={onSkip}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,3vw,28px)" }}>
         <RoundLabel label={rd.label} name={rd.name} />
         <div style={{ height: "clamp(8px,2vw,20px)" }} />
         <p style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "#888888", fontWeight: 500, letterSpacing: "0.12em", alignSelf: "center" }}>
@@ -489,9 +546,9 @@ function RuleScreen({ rd, rule, countdown }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule switch overlay
 // ─────────────────────────────────────────────────────────────────────────────
-function RuleSwitchScreen({ newRule, progress }) {
+function RuleSwitchScreen({ newRule, progress, onSkip }) {
   return (
-    <Shell>
+    <Shell onSkip={onSkip}>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,3vw,28px)" }}>
         <p style={{ fontSize: "clamp(14px,2vw,18px)", color: "#FF4060", fontWeight: 700, letterSpacing: "0.1em" }}>
           RULE CHANGE:
@@ -514,23 +571,23 @@ function RuleSwitchScreen({ newRule, progress }) {
 // the brief blank frame between words, keeping layout stable. wordKey on each
 // word span re-triggers the CSS wordIn animation for a clean fade-in.
 // ─────────────────────────────────────────────────────────────────────────────
-function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer }) {
+function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer, onSkip }) {
   const fmt    = displayItem ? getItemFormat(rd, displayItem) : "single";
   const isPair = fmt === "pair";
 
   return (
-    <Shell flash={flash}>
-      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "clamp(12px,2vw,18px)" }}>
+    <Shell flash={flash} onSkip={onSkip}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(12px,2vw,18px)" }}>
 
         <RoundLabel label={rd.label} name={rd.name} />
         <ProgressBar value={progress} />
 
-        <p style={{ fontSize: "clamp(12px,1.6vw,16px)", color: "#FF4060", fontWeight: 500, lineHeight: 1.4, minHeight: "1.4em" }}>
+        <p style={{ fontSize: "clamp(12px,1.6vw,16px)", color: "#FF4060", fontWeight: 500, lineHeight: 1.4, minHeight: "1.4em", textAlign: "center" }}>
           {rule}
         </p>
 
-        {/* Word area — opacity 0 while blank, never unmounts so layout is stable */}
-        <div style={{ width: "100%", opacity: displayItem ? 1 : 0, transition: displayItem ? "opacity 0.06s ease" : "none" }}>
+        {/* Word area — margin adds breathing room above/below the box */}
+        <div style={{ width: "100%", opacity: displayItem ? 1 : 0, transition: displayItem ? "opacity 0.06s ease" : "none", margin: "clamp(8px,2vw,20px) 0" }}>
           {!isPair ? (
             <WordBox>
               <span key={wordKey} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.word ?? "", false), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block" }}>
@@ -538,17 +595,24 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
               </span>
             </WordBox>
           ) : (
-            <div style={{ display: "flex", gap: "clamp(6px,1vw,10px)", width: "100%" }}>
-              <WordBox style={{ flex: 1, maxWidth: "none", minHeight: "clamp(90px,14vw,140px)" }}>
-                <span key={wordKey + "L"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.left ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", padding: "0 8px" }}>
+            /* Single box, vertical white divider down the centre — matches mockup */
+            <div style={{
+              width: "100%", maxWidth: MAX_W,
+              border: "2px solid #FFFFFF", borderRadius: "4px",
+              display: "flex", alignItems: "stretch",
+              minHeight: "clamp(110px,18vw,160px)", background: "#111111",
+            }}>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
+                <span key={wordKey + "L"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.left ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", whiteSpace: "nowrap" }}>
                   {displayItem?.left ?? ""}
                 </span>
-              </WordBox>
-              <WordBox style={{ flex: 1, maxWidth: "none", minHeight: "clamp(90px,14vw,140px)" }}>
-                <span key={wordKey + "R"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.right ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", padding: "0 8px" }}>
+              </div>
+              <div style={{ width: "2px", background: "#FFFFFF", flexShrink: 0 }} />
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
+                <span key={wordKey + "R"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.right ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", whiteSpace: "nowrap" }}>
                   {displayItem?.right ?? ""}
                 </span>
-              </WordBox>
+              </div>
             </div>
           )}
         </div>
@@ -702,6 +766,8 @@ function ReviewModal({ roundIdx, results, onClose }) {
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function RuleBreaker() {
+  // Shuffle once on mount — lazy initializer so it never re-shuffles on re-render
+  const [PUZZLE]      = useState(buildShuffledDaily);
   const [screen,      setScreen]      = useState("intro");
   const [round,       setRound]       = useState(0);
   const [idx,         setIdx]         = useState(0);
@@ -718,7 +784,7 @@ export default function RuleBreaker() {
   const startRef = useRef(null);
   const animRef  = useRef(null);
 
-  const rd   = DAILY.rounds[round] ?? DAILY.rounds[0];
+  const rd   = PUZZLE.rounds[round] ?? PUZZLE.rounds[0];
   const rule = rd.rules[phase] ?? rd.rules[0];
   const prog = idx / rd.total;
 
@@ -737,7 +803,7 @@ export default function RuleBreaker() {
   }
 
   function doAdvance(r, i, p) {
-    const roundData = DAILY.rounds[r];
+    const roundData = PUZZLE.rounds[r];
     const next = i + 1;
 
     if (next >= roundData.total) {
@@ -790,7 +856,7 @@ export default function RuleBreaker() {
     const t2 = setTimeout(() => setCountdown(1), 2000);
     const t3 = setTimeout(() => {
       const r         = round;
-      const roundData = DAILY.rounds[r];
+      const roundData = PUZZLE.rounds[r];
       startRef.current = Date.now();
       setIdx(0);
       setPhase(0);
@@ -801,9 +867,6 @@ export default function RuleBreaker() {
   }, [screen]); // eslint-disable-line
 
   // Rule switch RAF progress bar
-  // Captures round/idx from committed state after React batches doAdvance's
-  // setPhase/setIdx/setScreen calls. noTransition on ProgressBar ensures the
-  // bar never interpolates backward when switchPct resets to 0.
   useEffect(() => {
     if (screen !== "rule_switch") return;
     setSwitchPct(0);
@@ -818,7 +881,7 @@ export default function RuleBreaker() {
         animRef.current = requestAnimationFrame(tick);
       } else {
         cancelAnimationFrame(animRef.current);
-        const roundData = DAILY.rounds[capturedR];
+        const roundData = PUZZLE.rounds[capturedR];
         setScreen("game");
         loadItem(roundData, capturedI);
       }
@@ -828,11 +891,38 @@ export default function RuleBreaker() {
     return () => cancelAnimationFrame(animRef.current);
   }, [screen]); // eslint-disable-line
 
+  function handleSkip() {
+    if (screen === "intro") {
+      setRound(0); setScreen("round_intro");
+    } else if (screen === "round_intro") {
+      setScreen("rule");
+    } else if (screen === "rule") {
+      startRef.current = Date.now();
+      setIdx(0); setPhase(0);
+      setScreen("game");
+      loadItem(PUZZLE.rounds[round], 0);
+    } else if (screen === "rule_switch") {
+      cancelAnimationFrame(animRef.current);
+      setScreen("game");
+      loadItem(PUZZLE.rounds[round], idx);
+    } else if (screen === "game") {
+      const elapsed = Date.now() - (startRef.current ?? Date.now());
+      setTimes(prev => { const n = [...prev]; n[round] = elapsed; return n; });
+      if (round >= 2) {
+        setScreen("results");
+      } else {
+        setRound(round + 1);
+        setIdx(0); setPhase(0);
+        setScreen("round_intro");
+      }
+    }
+  }
+
   if (screen === "intro")       return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} />;
-  if (screen === "round_intro") return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} />;
-  if (screen === "rule")        return <RuleScreen rd={rd} rule={rule} countdown={countdown} />;
-  if (screen === "rule_switch") return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} />;
-  if (screen === "game")        return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} />;
+  if (screen === "round_intro") return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} onSkip={handleSkip} />;
+  if (screen === "rule")        return <RuleScreen rd={rd} rule={rule} countdown={countdown} onSkip={handleSkip} />;
+  if (screen === "rule_switch") return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} onSkip={handleSkip} />;
+  if (screen === "game")        return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} onSkip={handleSkip} />;
   if (screen === "results")     return <ResultsScreen allResults={allResults} times={times} />;
   return null;
 }
