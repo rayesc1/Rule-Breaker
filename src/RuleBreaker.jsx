@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Analytics } from "@vercel/analytics/react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -469,7 +468,6 @@ function Shell({ children, flash }) {
              : "none";
   return (
     <div className="rb-backdrop">
-      <Analytics />
       <style>{STYLES}</style>
       <div className="rb-card" style={{ animation: anim }}>
         {children}
