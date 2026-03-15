@@ -257,6 +257,50 @@ function getOverallGrade(correct, total) {
   return "ROUGH DAY";
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Streak / stats helpers (localStorage)
+// ─────────────────────────────────────────────────────────────────────────────
+const STATS_KEY = "rb_stats";
+
+function loadStats() {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    return raw ? JSON.parse(raw) : { lastPlayedDay: null, streak: 0, bestStreak: 0, totalPlayed: 0, history: {} };
+  } catch { return { lastPlayedDay: null, streak: 0, bestStreak: 0, totalPlayed: 0, history: {} }; }
+}
+
+function saveStats(stats) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {}
+}
+
+function recordResult(dayNumber, grade, totalTime, correct, total) {
+  const stats = loadStats();
+  const yesterday = dayNumber - 1;
+  const newStreak = stats.lastPlayedDay === yesterday
+    ? stats.streak + 1
+    : stats.lastPlayedDay === dayNumber
+    ? stats.streak   // replaying same day (shouldn't happen but safe)
+    : 1;
+  const updated = {
+    lastPlayedDay: dayNumber,
+    streak:        newStreak,
+    bestStreak:    Math.max(stats.bestStreak, newStreak),
+    totalPlayed:   stats.totalPlayed + 1,
+    history: {
+      ...stats.history,
+      [dayNumber]: { grade, time: totalTime, correct, total },
+    },
+  };
+  saveStats(updated);
+  return updated;
+}
+
+function msUntilNextUtcMidnight() {
+  const now  = new Date();
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  return next - now;
+}
+
 function wordFontSize(word, isPair) {
   const l = (word || "").length;
   if (isPair) {
@@ -390,16 +434,6 @@ const STYLES = `
     position: relative; overflow: hidden;
   }
 
-  .rb-skip {
-    position: absolute; top: 16px; right: 16px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;
-    color: rgba(255,255,255,0.35);
-    font-family: 'Konkhmer Sleokchher', sans-serif;
-    font-size: 11px; padding: 6px 12px; letter-spacing: 0.06em;
-    cursor: pointer; z-index: 10;
-  }
-
   @media (min-width: 768px) {
     html, body, #root { overflow: hidden; }
 
@@ -420,8 +454,6 @@ const STYLES = `
     }
     .rb-card::-webkit-scrollbar { display: none; }
 
-    .rb-skip { top: 14px; right: 14px; }
-
     /* Title capped so BREAKER! never overflows the 400px card */
     .rb-title { font-size: 72px !important; }
   }
@@ -430,7 +462,7 @@ const STYLES = `
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared UI
 // ─────────────────────────────────────────────────────────────────────────────
-function Shell({ children, flash, onSkip }) {
+function Shell({ children, flash }) {
   const anim = flash === "green" ? "flashGreen 0.45s ease"
              : flash === "red"   ? "flashRed 0.45s ease"
              : "none";
@@ -438,9 +470,6 @@ function Shell({ children, flash, onSkip }) {
     <div className="rb-backdrop">
       <style>{STYLES}</style>
       <div className="rb-card" style={{ animation: anim }}>
-        {onSkip && (
-          <button className="rb-skip" onClick={onSkip}>SKIP →</button>
-        )}
         {children}
       </div>
     </div>
@@ -580,11 +609,11 @@ function IntroScreen({ onPlay, puzzle }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Round intro screen
 // ─────────────────────────────────────────────────────────────────────────────
-function RoundIntroScreen({ rd, onReady, onSkip }) {
+function RoundIntroScreen({ rd, onReady}) {
   const pStyle = { fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF", textAlign: "center" };
 
   return (
-    <Shell onSkip={onSkip}>
+    <Shell>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", paddingTop: "8px", paddingBottom: "8px" }}>
         <div />
         <div style={{ textAlign: "center" }}>
@@ -629,9 +658,9 @@ function RoundIntroScreen({ rd, onReady, onSkip }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule reveal screen (countdown)
 // ─────────────────────────────────────────────────────────────────────────────
-function RuleScreen({ rd, rule, countdown, onSkip }) {
+function RuleScreen({ rd, rule, countdown}) {
   return (
-    <Shell onSkip={onSkip}>
+    <Shell>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,3vw,28px)" }}>
         <RoundLabel label={rd.label} name={rd.name} />
         <div style={{ height: "clamp(8px,2vw,20px)" }} />
@@ -652,9 +681,9 @@ function RuleScreen({ rd, rule, countdown, onSkip }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule switch overlay
 // ─────────────────────────────────────────────────────────────────────────────
-function RuleSwitchScreen({ newRule, progress, onSkip }) {
+function RuleSwitchScreen({ newRule, progress}) {
   return (
-    <Shell onSkip={onSkip}>
+    <Shell>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,3vw,28px)" }}>
         <p style={{ fontSize: "clamp(14px,2vw,18px)", color: "#FF4060", fontWeight: 700, letterSpacing: "0.1em" }}>
           RULE CHANGE:
@@ -677,12 +706,12 @@ function RuleSwitchScreen({ newRule, progress, onSkip }) {
 // the brief blank frame between words, keeping layout stable. wordKey on each
 // word span re-triggers the CSS wordIn animation for a clean fade-in.
 // ─────────────────────────────────────────────────────────────────────────────
-function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer, onSkip }) {
+function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer}) {
   const fmt    = displayItem ? getItemFormat(rd, displayItem) : "single";
   const isPair = fmt === "pair";
 
   return (
-    <Shell flash={flash} onSkip={onSkip}>
+    <Shell flash={flash}>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(12px,2vw,18px)" }}>
 
         <RoundLabel label={rd.label} name={rd.name} />
@@ -732,7 +761,7 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
 // ─────────────────────────────────────────────────────────────────────────────
 // Results screen
 // ─────────────────────────────────────────────────────────────────────────────
-function ResultsScreen({ allResults, times, puzzle }) {
+function ResultsScreen({ allResults, times, puzzle, stats }) {
   const [copied, setCopied] = useState(false);
   const [review, setReview] = useState(null);
 
@@ -741,19 +770,30 @@ function ResultsScreen({ allResults, times, puzzle }) {
   const totalTime    = times.reduce((a, b) => a + b, 0);
   const overallGrade = getOverallGrade(totalCorrect, totalItems);
 
+  function gradeEmoji(correct, total) {
+    const p = correct / total;
+    if (p >= 0.85) return "🟢";
+    if (p >= 0.5)  return "🟡";
+    return "🔴";
+  }
+
   function buildShare() {
-    const lines = [`RULE BREAKER! #${puzzle.number}`, ""];
-    puzzle.rounds.forEach((r, i) => {
+    const roundLine = puzzle.rounds.map((r, i) => {
       const res     = allResults[i] || [];
       const correct = res.filter(x => x.correct).length;
-      const dots    = res.map(x => x.correct ? "🟢" : "🔴").join("");
-      lines.push(`${r.label}: ${r.name}`);
-      lines.push(dots);
-      lines.push(`${formatTime(times[i])} · ${correct}/${r.total} · ${getGrade(correct, r.total)}`);
-      lines.push("");
-    });
-    lines.push(`Total: ${formatTime(totalTime)}`);
-    lines.push("https://rule-breaker-three.vercel.app/");
+      return `R${i + 1}: ${gradeEmoji(correct, r.total)}`;
+    }).join("  ");
+
+    const streakPart = stats ? `  🔥${stats.streak}` : "";
+
+    const lines = [
+      `RULE BREAKER! #${puzzle.number}`,
+      "",
+      roundLine,
+      "",
+      `${totalCorrect}/${totalItems} · ${formatTime(totalTime)}${streakPart}`,
+      "rulebreaker.app",
+    ];
     return lines.join("\n");
   }
 
@@ -777,6 +817,22 @@ function ResultsScreen({ allResults, times, puzzle }) {
           <p style={{ fontSize: "clamp(12px,1.6vw,15px)", color: "#888888", marginTop: "6px" }}>
             {totalCorrect}/{totalItems} correct · {formatTime(totalTime)}
           </p>
+          {stats && (
+            <div style={{ display: "flex", gap: "clamp(20px,4vw,40px)", marginTop: "16px" }}>
+              <div>
+                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(20px,4vw,28px)", color: "#FF4060" }}>{stats.streak}</span>
+                <span style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginLeft: "6px", letterSpacing: "0.06em" }}>STREAK</span>
+              </div>
+              <div>
+                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(20px,4vw,28px)", color: "#FFFFFF" }}>{stats.bestStreak}</span>
+                <span style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginLeft: "6px", letterSpacing: "0.06em" }}>BEST</span>
+              </div>
+              <div>
+                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(20px,4vw,28px)", color: "#FFFFFF" }}>{stats.totalPlayed}</span>
+                <span style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginLeft: "6px", letterSpacing: "0.06em" }}>PLAYED</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -869,11 +925,92 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Already played screen
+// ─────────────────────────────────────────────────────────────────────────────
+function AlreadyPlayedScreen({ puzzle, stats }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const todayResult = stats.history[puzzle.day] || {};
+
+  useEffect(() => {
+    function tick() {
+      const ms = msUntilNextUtcMidnight();
+      const h  = Math.floor(ms / 3600000);
+      const m  = Math.floor((ms % 3600000) / 60000);
+      const s  = Math.floor((ms % 60000) / 1000);
+      setTimeLeft(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <Shell>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", justifyContent: "space-between" }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500 }}>
+          <span>{puzzle.date}</span>
+          <span>DAILY #{puzzle.number}</span>
+        </div>
+
+        {/* Main content */}
+        <div style={{ textAlign: "center" }}>
+          {/* Streak */}
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(56px,14vw,88px)", color: "#FF4060", lineHeight: 1 }}>
+              {stats.streak}
+            </div>
+            <p style={{ fontSize: "clamp(12px,1.6vw,15px)", color: "#888888", marginTop: "4px", letterSpacing: "0.08em" }}>
+              DAY STREAK
+            </p>
+          </div>
+
+          {/* Today's result */}
+          {todayResult.grade && (
+            <div style={{ marginBottom: "32px" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,32px)", color: "#FFFFFF", lineHeight: 1 }}>
+                {todayResult.grade}
+              </div>
+              <p style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "#888888", marginTop: "4px" }}>
+                {todayResult.correct}/{todayResult.total} correct · {formatTime(todayResult.time)}
+              </p>
+            </div>
+          )}
+
+          {/* Stats row */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "clamp(24px,5vw,48px)", marginBottom: "8px" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF" }}>{stats.bestStreak}</div>
+              <p style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginTop: "2px", letterSpacing: "0.06em" }}>BEST STREAK</p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF" }}>{stats.totalPlayed}</div>
+              <p style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginTop: "2px", letterSpacing: "0.06em" }}>PLAYED</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Next puzzle countdown */}
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: "clamp(11px,1.4vw,13px)", color: "#888888", letterSpacing: "0.08em", marginBottom: "8px" }}>
+            NEXT PUZZLE IN
+          </p>
+          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(28px,6vw,40px)", color: "#FFFFFF", letterSpacing: "0.04em" }}>
+            {timeLeft}
+          </div>
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function RuleBreaker() {
   const [PUZZLE,      setPUZZLE]      = useState(null);
   const [loading,     setLoading]     = useState(true);
+  const [stats,       setStats]       = useState(null);
   const [screen,      setScreen]      = useState("intro");
   const [round,       setRound]       = useState(0);
   const [idx,         setIdx]         = useState(0);
@@ -890,10 +1027,17 @@ export default function RuleBreaker() {
   const startRef = useRef(null);
   const animRef  = useRef(null);
 
-  // Fetch today's puzzle on mount
+  // Fetch today's puzzle on mount, then check if already played
   useEffect(() => {
     loadDailyPuzzle()
-      .then(puzzle => { setPUZZLE(puzzle); setLoading(false); })
+      .then(puzzle => {
+        const s = loadStats();
+        setPUZZLE(puzzle);
+        setStats(s);
+        setLoading(false);
+        // If already played today, go straight to already_played screen
+        if (s.lastPlayedDay === puzzle.day) setScreen("already_played");
+      })
       .catch(() => setLoading(false));
   }, []);
 
@@ -921,7 +1065,21 @@ export default function RuleBreaker() {
 
     if (next >= roundData.total) {
       const elapsed = Date.now() - startRef.current;
-      setTimes(prev => { const n = [...prev]; n[r] = elapsed; return n; });
+      setTimes(prev => {
+        const n = [...prev]; n[r] = elapsed;
+        // Save result when final round completes
+        if (r >= 2) {
+          const finalTimes   = [...prev]; finalTimes[r] = elapsed;
+          const totalTime    = finalTimes.reduce((a, b) => a + b, 0);
+          const allR         = allResults.map((res, ri) => ri < r ? res : allResults[ri]);
+          const totalCorrect = allR.flat().filter(x => x.correct).length;
+          const totalItems   = PUZZLE.rounds.reduce((a, rd) => a + rd.total, 0);
+          const grade        = getOverallGrade(totalCorrect, totalItems);
+          const updated      = recordResult(PUZZLE.day, grade, totalTime, totalCorrect, totalItems);
+          setStats(updated);
+        }
+        return n;
+      });
       if (r >= 2) {
         setScreen("results");
       } else {
@@ -1004,33 +1162,6 @@ export default function RuleBreaker() {
     return () => cancelAnimationFrame(animRef.current);
   }, [screen]); // eslint-disable-line
 
-  function handleSkip() {
-    if (screen === "intro") {
-      setRound(0); setScreen("round_intro");
-    } else if (screen === "round_intro") {
-      setScreen("rule");
-    } else if (screen === "rule") {
-      startRef.current = Date.now();
-      setIdx(0); setPhase(0);
-      setScreen("game");
-      loadItem(PUZZLE.rounds[round], 0);
-    } else if (screen === "rule_switch") {
-      cancelAnimationFrame(animRef.current);
-      setScreen("game");
-      loadItem(PUZZLE.rounds[round], idx);
-    } else if (screen === "game") {
-      const elapsed = Date.now() - (startRef.current ?? Date.now());
-      setTimes(prev => { const n = [...prev]; n[round] = elapsed; return n; });
-      if (round >= 2) {
-        setScreen("results");
-      } else {
-        setRound(round + 1);
-        setIdx(0); setPhase(0);
-        setScreen("round_intro");
-      }
-    }
-  }
-
   // Loading screen
   if (loading || !PUZZLE) {
     return (
@@ -1050,11 +1181,12 @@ export default function RuleBreaker() {
     );
   }
 
-  if (screen === "intro")       return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} puzzle={PUZZLE} />;
-  if (screen === "round_intro") return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} onSkip={handleSkip} />;
-  if (screen === "rule")        return <RuleScreen rd={rd} rule={rule} countdown={countdown} onSkip={handleSkip} />;
-  if (screen === "rule_switch") return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} onSkip={handleSkip} />;
-  if (screen === "game")        return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} onSkip={handleSkip} />;
-  if (screen === "results")     return <ResultsScreen allResults={allResults} times={times} puzzle={PUZZLE} />;
+  if (screen === "already_played") return <AlreadyPlayedScreen puzzle={PUZZLE} stats={stats} />;
+  if (screen === "intro")          return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} puzzle={PUZZLE} />;
+  if (screen === "round_intro")    return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} />;
+  if (screen === "rule")           return <RuleScreen rd={rd} rule={rule} countdown={countdown} />;
+  if (screen === "rule_switch")    return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} />;
+  if (screen === "game")           return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} />;
+  if (screen === "results")        return <ResultsScreen allResults={allResults} times={times} puzzle={PUZZLE} stats={stats} />;
   return null;
 }
