@@ -52,6 +52,25 @@ const RULE_CHECKERS = {
   "Is a living thing": w => LIVING_THINGS.has(w.toUpperCase()),
 };
 
+const WORD_CATEGORIES = {
+  WOLF: "animal", HAWK: "animal", TIGER: "animal", COBRA: "animal", FINCH: "animal",
+  HAMMER: "tool", WRENCH: "tool", DRILL: "tool", CHISEL: "tool",
+  SCARLET: "color", CRIMSON: "color", AMBER: "color", TEAL: "color", INDIGO: "color",
+  MARS: "planet", SATURN: "planet", VENUS: "planet", JUPITER: "planet",
+  MANGO: "fruit", PEACH: "fruit", PLUM: "fruit", GRAPE: "fruit",
+};
+
+const PAIR_RULE_CHECKERS = {
+  "Both words start with the same letter": (l, r) =>
+    l.toUpperCase()[0] === r.toUpperCase()[0],
+  "Both words belong to the same category": (l, r) => {
+    const cl = WORD_CATEGORIES[l.toUpperCase()];
+    const cr = WORD_CATEGORIES[r.toUpperCase()];
+    return cl !== undefined && cl === cr;
+  },
+  "Both words are the same length": (l, r) => l.length === r.length,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Puzzle data
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,9 +80,10 @@ const DAILY = {
   rounds: [
     {
       id: 0, label: "ROUND 1", name: "The Switch",
-      type: "single", total: 25, inversionPoints: [13],
+      type: "single", total: 30, inversionPoints: [15],
       rules: ["Has more consonants than vowels", "Starts and ends with the same letter"],
       words: [
+        // ── Phase 0 (0–14): Has more consonants than vowels ──
         { word: "DRAFT",   shouldAccept: true  },
         { word: "OCEAN",   shouldAccept: false },
         { word: "BRIDGE",  shouldAccept: true  },
@@ -77,6 +97,9 @@ const DAILY = {
         { word: "CRISP",   shouldAccept: true  },
         { word: "ISSUE",   shouldAccept: false },
         { word: "BLEND",   shouldAccept: true  },
+        { word: "SPRINT",  shouldAccept: true  },
+        { word: "IDEAL",   shouldAccept: false },
+        // ── Phase 1 (15–29): Starts and ends with the same letter ──
         { word: "AERIAL",  shouldAccept: false },
         { word: "KAYAK",   shouldAccept: true  },
         { word: "TABLE",   shouldAccept: false },
@@ -89,43 +112,53 @@ const DAILY = {
         { word: "ENTICE",  shouldAccept: true  },
         { word: "STORM",   shouldAccept: false },
         { word: "TENET",   shouldAccept: true  },
+        { word: "PULP",    shouldAccept: true  },
+        { word: "TREAT",   shouldAccept: true  },
+        { word: "DRAWN",   shouldAccept: false },
       ]
     },
     {
       id: 1, label: "ROUND 2", name: "Pairs",
-      type: "pairs", total: 30, inversionPoints: [],
-      rules: ["Is a living thing"],
+      type: "pairs", total: 30, inversionPoints: [10, 20],
+      rules: [
+        "Both words start with the same letter",
+        "Both words belong to the same category",
+        "Both words are the same length",
+      ],
       pairs: [
-        { left: "TREE",    right: "SNAKE",   shouldAccept: true  },
-        { left: "TIGER",   right: "FERN",    shouldAccept: true  },
-        { left: "RAVEN",   right: "WASP",    shouldAccept: true  },
-        { left: "OAK",     right: "COBRA",   shouldAccept: true  },
-        { left: "WOLF",    right: "MOSS",    shouldAccept: true  },
-        { left: "ROSE",    right: "BISON",   shouldAccept: true  },
-        { left: "SHARK",   right: "ELM",     shouldAccept: true  },
-        { left: "CROW",    right: "MOTH",    shouldAccept: true  },
-        { left: "DEER",    right: "FINCH",   shouldAccept: true  },
-        { left: "OTTER",   right: "CEDAR",   shouldAccept: true  },
-        { left: "SALMON",  right: "TULIP",   shouldAccept: true  },
-        { left: "LYNX",    right: "CRANE",   shouldAccept: true  },
-        { left: "HERON",   right: "TOAD",    shouldAccept: true  },
-        { left: "SPIDER",  right: "PINE",    shouldAccept: true  },
-        { left: "BEETLE",  right: "ORCHID",  shouldAccept: true  },
-        { left: "STONE",   right: "TIGER",   shouldAccept: false },
-        { left: "ANVIL",   right: "FERN",    shouldAccept: false },
-        { left: "MANTIS",  right: "DOOR",    shouldAccept: false },
-        { left: "LAMP",    right: "WOLF",    shouldAccept: false },
-        { left: "HAWK",    right: "BRICK",   shouldAccept: false },
-        { left: "TOWER",   right: "SHARK",   shouldAccept: false },
-        { left: "WREN",    right: "CLOCK",   shouldAccept: false },
-        { left: "BOOK",    right: "CRANE",   shouldAccept: false },
-        { left: "COIN",    right: "HERON",   shouldAccept: false },
-        { left: "DESK",    right: "TOAD",    shouldAccept: false },
-        { left: "GLASS",   right: "GECKO",   shouldAccept: false },
-        { left: "FROG",    right: "CHAIN",   shouldAccept: false },
-        { left: "CHAIR",   right: "NEWT",    shouldAccept: false },
-        { left: "DRUM",    right: "LYNX",    shouldAccept: false },
-        { left: "MAPLE",   right: "ROPE",    shouldAccept: false },
+        // ── Phase 0 (0–9): Both words start with the same letter ──
+        { left: "SILVER",  right: "STORM",   shouldAccept: true  }, // S / S
+        { left: "PLANET",  right: "PURPLE",  shouldAccept: true  }, // P / P
+        { left: "FLAME",   right: "FROST",   shouldAccept: true  }, // F / F
+        { left: "BRIDGE",  right: "BLANK",   shouldAccept: true  }, // B / B
+        { left: "CRANE",   right: "CLOCK",   shouldAccept: true  }, // C / C
+        { left: "TIGER",   right: "RIVER",   shouldAccept: false }, // T / R
+        { left: "CLOUD",   right: "MARBLE",  shouldAccept: false }, // C / M
+        { left: "GRAVE",   right: "TOWER",   shouldAccept: false }, // G / T
+        { left: "SHARP",   right: "LEMON",   shouldAccept: false }, // S / L
+        { left: "BRICK",   right: "OCEAN",   shouldAccept: false }, // B / O
+        // ── Phase 1 (10–19): Both words belong to the same category ──
+        { left: "WOLF",    right: "HAWK",    shouldAccept: true  }, // animal / animal
+        { left: "HAMMER",  right: "WRENCH",  shouldAccept: true  }, // tool   / tool
+        { left: "SCARLET", right: "CRIMSON", shouldAccept: true  }, // color  / color
+        { left: "MARS",    right: "SATURN",  shouldAccept: true  }, // planet / planet
+        { left: "MANGO",   right: "PEACH",   shouldAccept: true  }, // fruit  / fruit
+        { left: "COBRA",   right: "DRILL",   shouldAccept: false }, // animal / tool
+        { left: "INDIGO",  right: "WOLF",    shouldAccept: false }, // color  / animal
+        { left: "VENUS",   right: "GRAPE",   shouldAccept: false }, // planet / fruit
+        { left: "CHISEL",  right: "AMBER",   shouldAccept: false }, // tool   / color
+        { left: "FINCH",   right: "JUPITER", shouldAccept: false }, // animal / planet
+        // ── Phase 2 (20–29): Both words are the same length ──
+        { left: "FROST",   right: "CRANE",   shouldAccept: true  }, // 5 / 5
+        { left: "SILVER",  right: "BRIDGE",  shouldAccept: true  }, // 6 / 6
+        { left: "MARBLE",  right: "PLANET",  shouldAccept: true  }, // 6 / 6
+        { left: "STORM",   right: "BLANK",   shouldAccept: true  }, // 5 / 5
+        { left: "SHARP",   right: "LEMON",   shouldAccept: true  }, // 5 / 5
+        { left: "CROW",    right: "LEMON",   shouldAccept: false }, // 4 / 5
+        { left: "PLUM",    right: "MARBLE",  shouldAccept: false }, // 4 / 6
+        { left: "HAMMER",  right: "STORM",   shouldAccept: false }, // 6 / 5
+        { left: "OCEAN",   right: "SILVER",  shouldAccept: false }, // 5 / 6
+        { left: "WOLF",    right: "CRANE",   shouldAccept: false }, // 4 / 5
       ]
     },
     {
@@ -243,22 +276,51 @@ function wordFontSize(word, isPair) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shuffle helpers
-// Shuffles within each phase segment so answer patterns are never obvious,
-// while keeping items on the correct side of every inversion point boundary.
+// Daily rotation
+// Everyone gets the same puzzle each UTC day. Day number is days elapsed
+// since the launch date (March 13 2026 = Day 001). The day number seeds a
+// deterministic RNG (mulberry32) so the shuffle is identical for every player
+// on the same UTC day, and different every day automatically.
 // ─────────────────────────────────────────────────────────────────────────────
-function fisherYates(arr) {
+const LAUNCH_DATE_UTC = Date.UTC(2026, 2, 13); // March 13 2026, months are 0-indexed
+
+function getUtcDayNumber() {
+  const now = Date.now();
+  return Math.floor((now - LAUNCH_DATE_UTC) / 86400000) + 1;
+}
+
+function getUtcDateString() {
+  const d = new Date();
+  return d.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    year: "numeric", month: "long", day: "numeric",
+  });
+}
+
+// mulberry32 — fast, deterministic seeded RNG.
+// Returns a function that produces the next pseudo-random float [0, 1).
+function makePrng(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s += 0x6D2B79F5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Seeded Fisher-Yates — uses the shared prng instead of Math.random().
+function seededShuffle(arr, prng) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(prng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
 
-function shuffleRoundItems(rd) {
-  // Build phase segments based on inversionPoints, shuffle each independently,
-  // then reassemble. This keeps each item on the correct rule-phase side.
+function shuffleRoundItems(rd, prng) {
+  // Shuffle each phase segment independently so items never cross a rule boundary.
   const arr = rd.type === "single" ? rd.words
             : rd.type === "pairs"  ? rd.pairs
             : rd.items;
@@ -267,8 +329,7 @@ function shuffleRoundItems(rd) {
   let start = 0;
   const shuffled = [];
   for (const end of boundaries) {
-    const segment = arr.slice(start, end);
-    shuffled.push(...fisherYates(segment));
+    shuffled.push(...seededShuffle(arr.slice(start, end), prng));
     start = end;
   }
 
@@ -277,10 +338,21 @@ function shuffleRoundItems(rd) {
   return { ...rd, items: shuffled };
 }
 
-function buildShuffledDaily() {
+// ─────────────────────────────────────────────────────────────────────────────
+// Daily puzzle loader
+// Fetches today's puzzle from /puzzles.json by UTC day number.
+// Falls back to day 1 if today's puzzle isn't in the file yet.
+// The seeded shuffle runs client-side so every player gets the same order.
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadDailyPuzzle() {
+  const dayNumber = getUtcDayNumber();
+  const res       = await fetch("/puzzles.json");
+  const all       = await res.json();
+  const raw       = all[dayNumber] ?? all[1];
+  const prng      = makePrng(dayNumber);
   return {
-    ...DAILY,
-    rounds: DAILY.rounds.map(shuffleRoundItems),
+    ...raw,
+    rounds: raw.rounds.map(rd => shuffleRoundItems(rd, prng)),
   };
 }
 
@@ -375,13 +447,14 @@ function Shell({ children, flash, onSkip }) {
   );
 }
 
-function RoundLabel({ label, name }) {
+function RoundLabel({ label, name, large }) {
+  const size = large ? "clamp(22px,5vw,32px)" : "clamp(14px,2vw,18px)";
   return (
     <div style={{ textAlign: "center", marginBottom: "4px" }}>
-      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700, fontSize: "clamp(14px,2vw,18px)", color: "#FFFFFF", letterSpacing: "0.05em" }}>
+      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700, fontSize: size, color: "#FFFFFF", letterSpacing: "0.05em" }}>
         {label}:{" "}
       </span>
-      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700, fontSize: "clamp(14px,2vw,18px)", color: "#FF4060" }}>
+      <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700, fontSize: size, color: "#FF4060" }}>
         {name}
       </span>
     </div>
@@ -472,13 +545,13 @@ function PlayButton({ onClick, label = "PLAY" }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Intro screen
 // ─────────────────────────────────────────────────────────────────────────────
-function IntroScreen({ onPlay }) {
+function IntroScreen({ onPlay, puzzle }) {
   return (
     <Shell>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", paddingTop: "8px", paddingBottom: "8px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500, letterSpacing: "0.02em" }}>
-          <span>{DAILY.date}</span>
-          <span>DAILY #{DAILY.number}</span>
+          <span>{puzzle.date}</span>
+          <span>DAILY #{puzzle.number}</span>
         </div>
 
         <div style={{ textAlign: "center" }}>
@@ -487,19 +560,15 @@ function IntroScreen({ onPlay }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,2vw,16px)", textAlign: "center" }}>
-          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>You'll be shown a rule.</p>
-          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>Then, you'll be shown a series of words.</p>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>A rule appears. Words follow.</p>
           <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>
-            If they satisfy the rule, you <span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span>.
-          </p>
-          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 500, lineHeight: 1.5, color: "#FFFFFF" }}>
-            If they don't, <span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span>
+            Do they fit? <span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span>. Don't? <span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span>
           </p>
         </div>
 
         <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF" }}>Three rounds. You'll be timed.</p>
-          <p style={{ fontSize: "clamp(13px,1.6vw,16px)", color: "#888888", fontWeight: 400 }}>Rules change every single day.</p>
+          <p style={{ fontSize: "clamp(14px,2vw,18px)", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF" }}>Three rounds. Clock is running.</p>
+          <p style={{ fontSize: "clamp(13px,1.6vw,16px)", color: "#888888", fontWeight: 400 }}>New puzzle every day.</p>
         </div>
 
         <PlayButton onClick={onPlay} label="PLAY" />
@@ -519,38 +588,34 @@ function RoundIntroScreen({ rd, onReady, onSkip }) {
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", paddingTop: "8px", paddingBottom: "8px" }}>
         <div />
         <div style={{ textAlign: "center" }}>
-          <RoundLabel label={rd.label} name={rd.name} />
+          <RoundLabel label={rd.label} name={rd.name} large />
           <div style={{ height: "clamp(24px,4vw,48px)" }} />
 
           {rd.id === 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.8vw,16px)" }}>
-              <p style={pStyle}>You'll be shown <span style={{ color: "#FF4060", fontWeight: 700 }}>one</span> rule.</p>
-              <p style={pStyle}>Then, you'll be shown <span style={{ fontWeight: 700 }}>25 words</span> one at a time.</p>
+              <p style={pStyle}>You'll see <span style={{ fontWeight: 700 }}>30 words</span>, one at a time.</p>
               <p style={pStyle}>
-                If they satisfy the rule, you <span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span>.<br />
-                If they don't, <span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span>
+                If the word satisfies the rule, <span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span>.<br />
+                If it doesn't, <span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span>
               </p>
-              <p style={{ ...pStyle, color: "#FF4060" }}>Midway through, that rule will change.</p>
+              <p style={{ ...pStyle, color: "#FF4060", fontWeight: 700 }}>The rule will switch once. Adapt fast.</p>
             </div>
           )}
 
           {rd.id === 1 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.8vw,16px)" }}>
-              <p style={pStyle}><span style={{ color: "#2ECC71", fontWeight: 700 }}>BOTH</span> words need to satisfy the rule.</p>
-              <p style={pStyle}>You'll be shown <span style={{ fontWeight: 700 }}>30 word pairs</span>.</p>
-              <p style={pStyle}>Best of luck.</p>
+              <p style={pStyle}>Two words will appear side by side.</p>
+              <p style={pStyle}><span style={{ color: "#2ECC71", fontWeight: 700 }}>ACCEPT</span> if both satisfy the rule.<br /><span style={{ color: "#FF4060", fontWeight: 700 }}>RULE BREAK!</span> if they don't.</p>
+              <p style={pStyle}>You'll see <span style={{ fontWeight: 700 }}>30 pairs</span> across <span style={{ color: "#FF4060", fontWeight: 700 }}>3 rules</span>.</p>
+              <p style={{ ...pStyle, color: "#FF4060" }}>The rule switches twice. Stay sharp.</p>
             </div>
           )}
 
           {rd.id === 2 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px,1.8vw,16px)" }}>
-              <p style={pStyle}>
-                For the last round, you'll be shown both{" "}
-                <span style={{ color: "#FF4060", fontWeight: 700 }}>single</span> and{" "}
-                <span style={{ color: "#FF4060", fontWeight: 700 }}>word pairs</span> randomly.
-              </p>
-              <p style={pStyle}>There'll be <span style={{ color: "#FF4060", fontWeight: 700 }}>3 rule switches</span> this time…</p>
-              <p style={{ ...pStyle, color: "#2ECC71" }}>and you'll go through 40 of these…<br />so keep up.</p>
+              <p style={pStyle}><span style={{ fontWeight: 700 }}>40 items.</span> Singles and pairs, mixed together.</p>
+              <p style={pStyle}><span style={{ color: "#FF4060", fontWeight: 700 }}>3 rule switches.</span> Adapt or fall behind.</p>
+              <p style={{ ...pStyle, color: "#2ECC71", fontWeight: 700 }}>Good luck.</p>
             </div>
           )}
         </div>
@@ -667,18 +732,18 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
 // ─────────────────────────────────────────────────────────────────────────────
 // Results screen
 // ─────────────────────────────────────────────────────────────────────────────
-function ResultsScreen({ allResults, times }) {
+function ResultsScreen({ allResults, times, puzzle }) {
   const [copied, setCopied] = useState(false);
   const [review, setReview] = useState(null);
 
   const totalCorrect = allResults.flat().filter(x => x.correct).length;
-  const totalItems   = DAILY.rounds.reduce((a, r) => a + r.total, 0);
+  const totalItems   = puzzle.rounds.reduce((a, r) => a + r.total, 0);
   const totalTime    = times.reduce((a, b) => a + b, 0);
   const overallGrade = getOverallGrade(totalCorrect, totalItems);
 
   function buildShare() {
-    const lines = [`RULE BREAKER! #${DAILY.number}`, ""];
-    DAILY.rounds.forEach((r, i) => {
+    const lines = [`RULE BREAKER! #${puzzle.number}`, ""];
+    puzzle.rounds.forEach((r, i) => {
       const res     = allResults[i] || [];
       const correct = res.filter(x => x.correct).length;
       const dots    = res.map(x => x.correct ? "🟢" : "🔴").join("");
@@ -703,8 +768,8 @@ function ResultsScreen({ allResults, times }) {
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", justifyContent: "space-between" }}>
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500, marginBottom: "clamp(14px,2.5vw,24px)" }}>
-            <span>{DAILY.date}</span>
-            <span>DAILY #{DAILY.number}</span>
+            <span>{puzzle.date}</span>
+            <span>DAILY #{puzzle.number}</span>
           </div>
           <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(36px,8vw,60px)", color: "#FFFFFF", lineHeight: 1 }}>
             {overallGrade}
@@ -715,7 +780,7 @@ function ResultsScreen({ allResults, times }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {DAILY.rounds.map((r, i) => {
+          {puzzle.rounds.map((r, i) => {
             const res     = allResults[i] || [];
             const correct = res.filter(x => x.correct).length;
             const grade   = getGrade(correct, r.total);
@@ -743,7 +808,7 @@ function ResultsScreen({ allResults, times }) {
       </div>
 
       {review !== null && (
-        <ReviewModal roundIdx={review} results={allResults[review] || []} onClose={() => setReview(null)} />
+        <ReviewModal roundIdx={review} results={allResults[review] || []} onClose={() => setReview(null)} puzzle={puzzle} />
       )}
     </Shell>
   );
@@ -752,8 +817,8 @@ function ResultsScreen({ allResults, times }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Review modal
 // ─────────────────────────────────────────────────────────────────────────────
-function ReviewModal({ roundIdx, results, onClose }) {
-  const rd = DAILY.rounds[roundIdx];
+function ReviewModal({ roundIdx, results, onClose, puzzle }) {
+  const rd = puzzle.rounds[roundIdx];
   let currentPhase = 0;
 
   return (
@@ -807,14 +872,14 @@ function ReviewModal({ roundIdx, results, onClose }) {
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function RuleBreaker() {
-  // Shuffle once on mount — lazy initializer so it never re-shuffles on re-render
-  const [PUZZLE]      = useState(buildShuffledDaily);
+  const [PUZZLE,      setPUZZLE]      = useState(null);
+  const [loading,     setLoading]     = useState(true);
   const [screen,      setScreen]      = useState("intro");
   const [round,       setRound]       = useState(0);
   const [idx,         setIdx]         = useState(0);
   const [phase,       setPhase]       = useState(0);
   const [displayItem, setDisplayItem] = useState(null);
-  const [wordKey,     setWordKey]     = useState(0);  // increments on each new word to retrigger CSS animation
+  const [wordKey,     setWordKey]     = useState(0);
   const [flash,       setFlash]       = useState(null);
   const [active,      setActive]      = useState(false);
   const [countdown,   setCountdown]   = useState(3);
@@ -825,9 +890,16 @@ export default function RuleBreaker() {
   const startRef = useRef(null);
   const animRef  = useRef(null);
 
-  const rd   = PUZZLE.rounds[round] ?? PUZZLE.rounds[0];
-  const rule = rd.rules[phase] ?? rd.rules[0];
-  const prog = idx / rd.total;
+  // Fetch today's puzzle on mount
+  useEffect(() => {
+    loadDailyPuzzle()
+      .then(puzzle => { setPUZZLE(puzzle); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const rd   = PUZZLE ? (PUZZLE.rounds[round] ?? PUZZLE.rounds[0]) : null;
+  const rule = rd ? (rd.rules[phase] ?? rd.rules[0]) : "";
+  const prog = rd ? idx / rd.total : 0;
 
   function loadItem(roundData, itemIdx) {
     setDisplayItem(null);   // word area opacity → 0 immediately
@@ -959,11 +1031,30 @@ export default function RuleBreaker() {
     }
   }
 
-  if (screen === "intro")       return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} />;
+  // Loading screen
+  if (loading || !PUZZLE) {
+    return (
+      <div className="rb-backdrop">
+        <style>{STYLES}</style>
+        <div className="rb-card" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(32px,8vw,52px)", color: "#FFFFFF", lineHeight: 0.95, marginBottom: "20px" }}>
+              RULE<br /><span style={{ color: "#FF4060" }}>BREAKER!</span>
+            </div>
+            <p style={{ color: "#888888", fontSize: "13px", animation: "pulse 1.2s ease infinite" }}>
+              Loading today's puzzle…
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "intro")       return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} puzzle={PUZZLE} />;
   if (screen === "round_intro") return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} onSkip={handleSkip} />;
   if (screen === "rule")        return <RuleScreen rd={rd} rule={rule} countdown={countdown} onSkip={handleSkip} />;
   if (screen === "rule_switch") return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} onSkip={handleSkip} />;
   if (screen === "game")        return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} onSkip={handleSkip} />;
-  if (screen === "results")     return <ResultsScreen allResults={allResults} times={times} />;
+  if (screen === "results")     return <ResultsScreen allResults={allResults} times={times} puzzle={PUZZLE} />;
   return null;
 }
