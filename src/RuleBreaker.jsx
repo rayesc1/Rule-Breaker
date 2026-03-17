@@ -265,8 +265,8 @@ const STATS_KEY = "rb_stats";
 function loadStats() {
   try {
     const raw = localStorage.getItem(STATS_KEY);
-    return raw ? JSON.parse(raw) : { lastPlayedDay: null, streak: 0, bestStreak: 0, totalPlayed: 0, history: {} };
-  } catch { return { lastPlayedDay: null, streak: 0, bestStreak: 0, totalPlayed: 0, history: {} }; }
+    return raw ? JSON.parse(raw) : { lastPlayedDay: null, streak: 0, bestStreak: 0, bestTime: null, totalPlayed: 0, history: {} };
+  } catch { return { lastPlayedDay: null, streak: 0, bestStreak: 0, bestTime: null, totalPlayed: 0, history: {} }; }
 }
 
 function saveStats(stats) {
@@ -279,16 +279,18 @@ function recordResult(dayNumber, grade, totalTime, correct, total) {
   const newStreak = stats.lastPlayedDay === yesterday
     ? stats.streak + 1
     : stats.lastPlayedDay === dayNumber
-    ? stats.streak   // replaying same day (shouldn't happen but safe)
+    ? stats.streak
     : 1;
+  const isNewBest = stats.bestTime === null || totalTime < stats.bestTime;
   const updated = {
     lastPlayedDay: dayNumber,
     streak:        newStreak,
     bestStreak:    Math.max(stats.bestStreak, newStreak),
+    bestTime:      isNewBest ? totalTime : stats.bestTime,
     totalPlayed:   stats.totalPlayed + 1,
     history: {
       ...stats.history,
-      [dayNumber]: { grade, time: totalTime, correct, total },
+      [dayNumber]: { grade, time: totalTime, correct, total, isNewBest },
     },
   };
   saveStats(updated);
@@ -390,14 +392,24 @@ function shuffleRoundItems(rd, prng) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadDailyPuzzle() {
   const dayNumber = getUtcDayNumber();
-  const res       = await fetch("/puzzles.json");
-  const all       = await res.json();
-  const raw       = all[dayNumber] ?? all[1];
   const prng      = makePrng(dayNumber);
-  return {
-    ...raw,
-    rounds: raw.rounds.map(rd => shuffleRoundItems(rd, prng)),
-  };
+  try {
+    const res = await fetch("/puzzles.json");
+    if (!res.ok) throw new Error("fetch failed");
+    const all = await res.json();
+    const raw = all[dayNumber] ?? all[1];
+    return {
+      ...raw,
+      rounds: raw.rounds.map(rd => shuffleRoundItems(rd, prng)),
+    };
+  } catch {
+    return {
+      ...DAILY,
+      date:   getUtcDateString(),
+      number: String(dayNumber).padStart(3, "0"),
+      rounds: DAILY.rounds.map(rd => shuffleRoundItems(rd, prng)),
+    };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -783,9 +795,7 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
       const correct = res.filter(x => x.correct).length;
       return `R${i + 1}: ${gradeEmoji(correct, r.total)}`;
     }).join("  ");
-
     const streakPart = stats ? `  🔥${stats.streak}` : "";
-
     const lines = [
       `RULE BREAKER! #${puzzle.number}`,
       "",
@@ -799,68 +809,130 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
 
   function handleShare() {
     navigator.clipboard.writeText(buildShare())
-      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); })
       .catch(() => {});
   }
 
   return (
     <Shell>
-      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500, marginBottom: "clamp(14px,2.5vw,24px)" }}>
-            <span>{puzzle.date}</span>
-            <span>DAILY #{puzzle.number}</span>
-          </div>
-          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(36px,8vw,60px)", color: "#FFFFFF", lineHeight: 1 }}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", gap: "clamp(14px,2.5vw,22px)", overflowY: "auto" }}>
+
+        {/* Header — date + daily number */}
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,13px)", color: "#888888", fontWeight: 500 }}>
+          <span>{puzzle.date}</span>
+          <span>DAILY #{puzzle.number}</span>
+        </div>
+
+        {/* Grade + score */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(42px,10vw,68px)", color: "#FFFFFF", lineHeight: 1 }}>
             {overallGrade}
           </div>
           <p style={{ fontSize: "clamp(12px,1.6vw,15px)", color: "#888888", marginTop: "6px" }}>
             {totalCorrect}/{totalItems} correct · {formatTime(totalTime)}
           </p>
-          {stats && (
-            <div style={{ display: "flex", gap: "clamp(20px,4vw,40px)", marginTop: "16px" }}>
-              <div>
-                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(20px,4vw,28px)", color: "#FF4060" }}>{stats.streak}</span>
-                <span style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginLeft: "6px", letterSpacing: "0.06em" }}>STREAK</span>
-              </div>
-              <div>
-                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(20px,4vw,28px)", color: "#FFFFFF" }}>{stats.bestStreak}</span>
-                <span style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginLeft: "6px", letterSpacing: "0.06em" }}>BEST</span>
-              </div>
-              <div>
-                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(20px,4vw,28px)", color: "#FFFFFF" }}>{stats.totalPlayed}</span>
-                <span style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginLeft: "6px", letterSpacing: "0.06em" }}>PLAYED</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {/* Streak stats */}
+        {stats && (
+          <div style={{ display: "flex", justifyContent: "center", gap: "clamp(24px,5vw,48px)", padding: "clamp(12px,2vw,18px) 0", borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(26px,6vw,36px)", color: "#FF4060", lineHeight: 1 }}>{stats.streak}</div>
+              <p style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", marginTop: "4px", letterSpacing: "0.1em" }}>STREAK</p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(26px,6vw,36px)", color: "#FFFFFF", lineHeight: 1 }}>{stats.bestStreak}</div>
+              <p style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", marginTop: "4px", letterSpacing: "0.1em" }}>BEST</p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(26px,6vw,36px)", color: "#FFFFFF", lineHeight: 1 }}>{stats.totalPlayed}</div>
+              <p style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", marginTop: "4px", letterSpacing: "0.1em" }}>PLAYED</p>
+            </div>
+          </div>
+        )}
+
+        {/* Personal best banner */}
+        {stats && stats.history[puzzle.day]?.isNewBest && (
+          <div style={{ textAlign: "center", padding: "10px 16px", background: "rgba(255,255,255,0.05)", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.12)" }}>
+            <span style={{ fontSize: "clamp(11px,1.6vw,14px)", color: "#2ECC71", letterSpacing: "0.08em", fontWeight: 700 }}>⚡ NEW BEST TIME — {formatTime(totalTime)}</span>
+          </div>
+        )}
+        {stats && !stats.history[puzzle.day]?.isNewBest && stats.bestTime && (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#555555", letterSpacing: "0.06em" }}>BEST: {formatTime(stats.bestTime)}</p>
+          </div>
+        )}
+
+        {/* Round cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {puzzle.rounds.map((r, i) => {
             const res     = allResults[i] || [];
             const correct = res.filter(x => x.correct).length;
             const grade   = getGrade(correct, r.total);
-            const dots    = res.map(x => x.correct ? "🟢" : "🔴").join("");
+            const emoji   = gradeEmoji(correct, r.total);
             return (
-              <button key={i} onClick={() => setReview(i)} style={{ width: "100%", background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "6px", padding: "14px 16px", textAlign: "left", cursor: "pointer", color: "#FFFFFF" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <span style={{ fontWeight: 700, fontSize: "clamp(12px,1.6vw,15px)", color: "#FFFFFF" }}>
+              <button key={i} onClick={() => setReview(i)} style={{ width: "100%", background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "14px 16px", textAlign: "left", cursor: "pointer", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "clamp(11px,1.5vw,13px)", color: "#888888", marginBottom: "3px", letterSpacing: "0.04em" }}>
                     {r.label}: <span style={{ color: "#FF4060" }}>{r.name}</span>
-                  </span>
-                  <span style={{ fontWeight: 700, fontSize: "clamp(12px,1.6vw,15px)", color: "#FFFFFF" }}>{grade}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                    <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,17px)", color: "#FFFFFF" }}>{grade}</span>
+                    <span style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#666666" }}>{correct}/{r.total} · {formatTime(times[i])}</span>
+                  </div>
                 </div>
-                <div style={{ fontSize: "clamp(10px,1.4vw,13px)", color: "#888888", marginBottom: "6px" }}>
-                  {correct}/{r.total} · {formatTime(times[i])}
-                </div>
-                <div style={{ fontSize: "11px", lineHeight: 1.6, wordBreak: "break-all" }}>
-                  {dots}
-                </div>
+                <div style={{ fontSize: "clamp(22px,4vw,28px)", lineHeight: 1, flexShrink: 0 }}>{emoji}</div>
               </button>
             );
           })}
         </div>
 
-        <PlayButton onClick={handleShare} label={copied ? "COPIED!" : "SHARE RESULTS"} />
+        {/* Action buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {/* Share */}
+          <button onClick={handleShare} style={{
+            width: "100%", padding: "clamp(14px,2.5vw,18px)",
+            background: copied ? "#1A3D1A" : "#FF4060",
+            border: copied ? "2px solid #2ECC71" : "none",
+            borderRadius: "4px", color: copied ? "#2ECC71" : "#FFFFFF",
+            fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700,
+            fontSize: "clamp(12px,1.8vw,15px)", letterSpacing: "0.1em",
+            transition: "background 0.2s, color 0.2s, border 0.2s", cursor: "pointer",
+          }}>
+            {copied ? "COPIED TO CLIPBOARD!" : "SHARE RESULTS"}
+          </button>
+
+          {/* X + Feedback row */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={() => window.open("https://x.com/RuleBreakerApp", "_blank")}
+              style={{
+                flex: 1, padding: "clamp(12px,2vw,16px)",
+                background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: "4px", color: "#FFFFFF",
+                fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em",
+                cursor: "pointer",
+              }}
+            >
+              FOLLOW US
+            </button>
+            <button
+              onClick={() => window.open("https://forms.gle/tQwW6jpMS5vCThgh7", "_blank")}
+              style={{
+                flex: 1, padding: "clamp(12px,2vw,16px)",
+                background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: "4px", color: "#FFFFFF",
+                fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em",
+                cursor: "pointer",
+              }}
+            >
+              FEEDBACK
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {review !== null && (
@@ -876,23 +948,47 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
 function ReviewModal({ roundIdx, results, onClose, puzzle }) {
   const rd = puzzle.rounds[roundIdx];
   let currentPhase = 0;
+  const correct = results.filter(x => x.correct).length;
 
   return (
-    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.94)", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 100, overflowY: "auto", padding: "24px 20px", color: "#FFFFFF" }}>
+    <div style={{
+      position: "absolute", inset: 0, background: "#111111",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      zIndex: 100, overflowY: "auto", padding: "24px 20px",
+    }}>
       <div style={{ width: "100%", maxWidth: MAX_W }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <span style={{ fontWeight: 700, fontSize: "clamp(14px,2vw,17px)", color: "#FFFFFF" }}>
-            {rd.label}: <span style={{ color: "#FF4060" }}>{rd.name}</span>
-          </span>
-          <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", borderRadius: "4px", color: "#FFFFFF", padding: "8px 16px", fontSize: "13px", fontWeight: 600 }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div>
+            <div style={{ fontSize: "clamp(11px,1.5vw,13px)", color: "#888888", letterSpacing: "0.04em", marginBottom: "3px" }}>
+              {rd.label}: <span style={{ color: "#FF4060" }}>{rd.name}</span>
+            </div>
+            <div style={{ fontSize: "clamp(12px,1.6vw,15px)", color: "#FFFFFF", fontWeight: 700 }}>
+              {correct}/{rd.total} correct
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "4px", color: "#888888", padding: "8px 18px",
+            fontFamily: "'Konkhmer Sleokchher',sans-serif",
+            fontSize: "clamp(10px,1.4vw,13px)", letterSpacing: "0.06em", cursor: "pointer",
+          }}>
             CLOSE
           </button>
         </div>
 
-        <div style={{ textAlign: "center", padding: "8px 0 12px", color: "#888888", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
-          RULE: {rd.rules[0]}
+        {/* Starting rule label */}
+        <div style={{
+          padding: "10px 14px", marginBottom: "8px",
+          background: "#1A1A1A", borderRadius: "6px",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}>
+          <span style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", letterSpacing: "0.1em" }}>RULE  </span>
+          <span style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FF4060" }}>{rd.rules[0]}</span>
         </div>
 
+        {/* Word rows */}
         {results.map((r, i) => {
           const item = r.item;
           const inv  = rd.inversionPoints.includes(i);
@@ -903,22 +999,56 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
           return (
             <div key={i}>
               {inv && (
-                <div style={{ textAlign: "center", padding: "10px 0", color: "#FF4060", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", borderTop: "1px solid rgba(255,64,96,0.25)", borderBottom: "1px solid rgba(255,64,96,0.25)", margin: "8px 0" }}>
-                  RULE CHANGE: {rd.rules[currentPhase]}
+                <div style={{
+                  padding: "10px 14px", margin: "8px 0",
+                  background: "#1A1A1A", borderRadius: "6px",
+                  border: "1px solid rgba(255,64,96,0.2)",
+                }}>
+                  <span style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", letterSpacing: "0.1em" }}>RULE  </span>
+                  <span style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FF4060" }}>{rd.rules[currentPhase]}</span>
                 </div>
               )}
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ fontSize: "14px", flexShrink: 0 }}>{r.correct ? "🟢" : "🔴"}</span>
-                <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: fmt === "pair" ? "clamp(13px,1.8vw,16px)" : "clamp(16px,2.2vw,20px)", color: r.correct ? "#FFFFFF" : "rgba(255,255,255,0.35)", flex: 1 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: "12px",
+                padding: "10px 4px",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+              }}>
+                <span style={{ fontSize: "14px", flexShrink: 0, lineHeight: 1 }}>
+                  {r.correct ? "🟢" : "🔴"}
+                </span>
+                <span style={{
+                  fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                  fontSize: fmt === "pair" ? "clamp(12px,1.8vw,15px)" : "clamp(14px,2vw,18px)",
+                  color: r.correct ? "#FFFFFF" : "rgba(255,255,255,0.3)",
+                  flex: 1, lineHeight: 1.3,
+                }}>
                   {wordDisplay}
                 </span>
-                <span style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.04em", flexShrink: 0, color: item.shouldAccept ? "#2ECC71" : "#FF4060" }}>
-                  {item.shouldAccept ? "ACCEPT" : "RULE BREAK"}
+                <span style={{
+                  fontSize: "clamp(9px,1.2vw,11px)", letterSpacing: "0.04em",
+                  flexShrink: 0, fontWeight: 700,
+                  color: item.shouldAccept ? "#2ECC71" : "#FF4060",
+                  opacity: r.correct ? 0.5 : 1,
+                }}>
+                  {item.shouldAccept ? "ACCEPT" : "BREAK"}
                 </span>
               </div>
             </div>
           );
         })}
+
+        {/* Bottom close button */}
+        <button onClick={onClose} style={{
+          width: "100%", marginTop: "24px",
+          padding: "clamp(14px,2.5vw,18px)",
+          background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: "4px", color: "#888888",
+          fontFamily: "'Konkhmer Sleokchher',sans-serif",
+          fontSize: "clamp(12px,1.8vw,15px)", letterSpacing: "0.1em", cursor: "pointer",
+        }}>
+          CLOSE
+        </button>
+
       </div>
     </div>
   );
@@ -928,7 +1058,8 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
 // Already played screen
 // ─────────────────────────────────────────────────────────────────────────────
 function AlreadyPlayedScreen({ puzzle, stats }) {
-  const [timeLeft, setTimeLeft] = useState("");
+  const [timeLeft,  setTimeLeft]  = useState("");
+  const [copied,    setCopied]    = useState(false);
   const todayResult = stats.history[puzzle.day] || {};
 
   useEffect(() => {
@@ -944,61 +1075,115 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
     return () => clearInterval(id);
   }, []);
 
+  function gradeEmoji(p) {
+    if (p >= 0.85) return "🟢";
+    if (p >= 0.5)  return "🟡";
+    return "🔴";
+  }
+
+  function buildShare() {
+    const pct = todayResult.correct / todayResult.total;
+    const lines = [
+      `RULE BREAKER! #${puzzle.number}`,
+      "",
+      `${gradeEmoji(pct)} ${todayResult.grade}`,
+      "",
+      `${todayResult.correct}/${todayResult.total} · ${formatTime(todayResult.time)}  🔥${stats.streak}`,
+      "rulebreaker.app",
+    ];
+    return lines.join("\n");
+  }
+
+  function handleShare() {
+    navigator.clipboard.writeText(buildShare())
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); })
+      .catch(() => {});
+  }
+
   return (
     <Shell>
-      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", justifyContent: "space-between" }}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", height: "100%", paddingTop: "8px", paddingBottom: "8px", gap: "clamp(14px,2.5vw,22px)" }}>
+
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,14px)", color: "#FFFFFF", fontWeight: 500 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "clamp(11px,1.4vw,13px)", color: "#888888", fontWeight: 500 }}>
           <span>{puzzle.date}</span>
           <span>DAILY #{puzzle.number}</span>
         </div>
 
-        {/* Main content */}
+        {/* Streak — hero number */}
         <div style={{ textAlign: "center" }}>
-          {/* Streak */}
-          <div style={{ marginBottom: "32px" }}>
-            <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(56px,14vw,88px)", color: "#FF4060", lineHeight: 1 }}>
-              {stats.streak}
-            </div>
-            <p style={{ fontSize: "clamp(12px,1.6vw,15px)", color: "#888888", marginTop: "4px", letterSpacing: "0.08em" }}>
-              DAY STREAK
-            </p>
+          <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(64px,16vw,96px)", color: "#FF4060", lineHeight: 1 }}>
+            {stats.streak}
           </div>
+          <p style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "#888888", marginTop: "6px", letterSpacing: "0.1em" }}>
+            DAY STREAK
+          </p>
+        </div>
 
-          {/* Today's result */}
-          {todayResult.grade && (
-            <div style={{ marginBottom: "32px" }}>
-              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,32px)", color: "#FFFFFF", lineHeight: 1 }}>
-                {todayResult.grade}
-              </div>
-              <p style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "#888888", marginTop: "4px" }}>
-                {todayResult.correct}/{todayResult.total} correct · {formatTime(todayResult.time)}
-              </p>
+        {/* Today's result */}
+        {todayResult.grade && (
+          <div style={{ textAlign: "center", padding: "clamp(12px,2vw,18px) 0", borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,32px)", color: "#FFFFFF", lineHeight: 1 }}>
+              {todayResult.grade}
+            </div>
+            <p style={{ fontSize: "clamp(11px,1.4vw,14px)", color: "#888888", marginTop: "6px" }}>
+              {todayResult.correct}/{todayResult.total} correct · {formatTime(todayResult.time)}
+            </p>
+            {todayResult.isNewBest && (
+              <p style={{ fontSize: "clamp(10px,1.3vw,13px)", color: "#2ECC71", marginTop: "6px", letterSpacing: "0.06em" }}>⚡ NEW BEST TIME</p>
+            )}
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "clamp(24px,5vw,48px)" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF", lineHeight: 1 }}>{stats.bestStreak}</div>
+            <p style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", marginTop: "4px", letterSpacing: "0.1em" }}>BEST STREAK</p>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF", lineHeight: 1 }}>{stats.totalPlayed}</div>
+            <p style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", marginTop: "4px", letterSpacing: "0.1em" }}>PLAYED</p>
+          </div>
+          {stats.bestTime && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF", lineHeight: 1 }}>{formatTime(stats.bestTime)}</div>
+              <p style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#888888", marginTop: "4px", letterSpacing: "0.1em" }}>BEST TIME</p>
             </div>
           )}
-
-          {/* Stats row */}
-          <div style={{ display: "flex", justifyContent: "center", gap: "clamp(24px,5vw,48px)", marginBottom: "8px" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF" }}>{stats.bestStreak}</div>
-              <p style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginTop: "2px", letterSpacing: "0.06em" }}>BEST STREAK</p>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(22px,5vw,30px)", color: "#FFFFFF" }}>{stats.totalPlayed}</div>
-              <p style={{ fontSize: "clamp(10px,1.2vw,12px)", color: "#888888", marginTop: "2px", letterSpacing: "0.06em" }}>PLAYED</p>
-            </div>
-          </div>
         </div>
 
         {/* Next puzzle countdown */}
         <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: "clamp(11px,1.4vw,13px)", color: "#888888", letterSpacing: "0.08em", marginBottom: "8px" }}>
-            NEXT PUZZLE IN
-          </p>
+          <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#888888", letterSpacing: "0.1em", marginBottom: "6px" }}>NEXT PUZZLE IN</p>
           <div style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(28px,6vw,40px)", color: "#FFFFFF", letterSpacing: "0.04em" }}>
             {timeLeft}
           </div>
         </div>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "auto" }}>
+          <button onClick={handleShare} style={{
+            width: "100%", padding: "clamp(14px,2.5vw,18px)",
+            background: copied ? "#1A3D1A" : "#FF4060",
+            border: copied ? "2px solid #2ECC71" : "none",
+            borderRadius: "4px", color: copied ? "#2ECC71" : "#FFFFFF",
+            fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 700,
+            fontSize: "clamp(12px,1.8vw,15px)", letterSpacing: "0.1em",
+            transition: "background 0.2s, color 0.2s, border 0.2s", cursor: "pointer",
+          }}>
+            {copied ? "COPIED TO CLIPBOARD!" : "SHARE RESULTS"}
+          </button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => window.open("https://x.com/RuleBreakerApp", "_blank")} style={{ flex: 1, padding: "clamp(12px,2vw,16px)", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "4px", color: "#FFFFFF", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em", cursor: "pointer" }}>
+              FOLLOW US
+            </button>
+            <button onClick={() => window.open("https://forms.gle/tQwW6jpMS5vCThgh7", "_blank")} style={{ flex: 1, padding: "clamp(12px,2vw,16px)", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "4px", color: "#FFFFFF", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em", cursor: "pointer" }}>
+              FEEDBACK
+            </button>
+          </div>
+        </div>
+
       </div>
     </Shell>
   );
