@@ -303,6 +303,49 @@ function msUntilNextUtcMidnight() {
   return next - now;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Supabase — anonymous time submission + daily stats
+// ─────────────────────────────────────────────────────────────────────────────
+const SB_URL = "https://hvnuhcltsgheuktuacta.supabase.co";
+const SB_KEY = "sb_publishable_6BvzW4FxXO4rArsByE225g_XlU-Knpo";
+
+async function submitCompletion(dayNumber, totalTimeMs, correct) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SB_KEY,
+        "Authorization": `Bearer ${SB_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({ day_number: dayNumber, total_time_ms: totalTimeMs, correct }),
+    });
+  } catch {}
+}
+
+async function fetchDayStats(dayNumber, myTimeMs) {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/completions?day_number=eq.${dayNumber}&select=total_time_ms`,
+      {
+        headers: {
+          "apikey": SB_KEY,
+          "Authorization": `Bearer ${SB_KEY}`,
+        },
+      }
+    );
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return null;
+    const times = rows.map(r => r.total_time_ms).sort((a, b) => a - b);
+    const avg     = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    const fastest = times[0];
+    const slower  = times.filter(t => t > myTimeMs).length;
+    const percentile = Math.round((slower / times.length) * 100);
+    return { percentile, avg, fastest };
+  } catch { return null; }
+}
+
 function wordFontSize(word, isPair) {
   const l = (word || "").length;
   if (isPair) {
@@ -774,13 +817,18 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
 // Results screen
 // ─────────────────────────────────────────────────────────────────────────────
 function ResultsScreen({ allResults, times, puzzle, stats }) {
-  const [copied, setCopied] = useState(false);
-  const [review, setReview] = useState(null);
+  const [copied,          setCopied]          = useState(false);
+  const [review,          setReview]          = useState(null);
+  const [leaderboard,     setLeaderboard]     = useState(null);
 
   const totalCorrect = allResults.flat().filter(x => x.correct).length;
   const totalItems   = puzzle.rounds.reduce((a, r) => a + r.total, 0);
   const totalTime    = times.reduce((a, b) => a + b, 0);
   const overallGrade = getOverallGrade(totalCorrect, totalItems);
+
+  useEffect(() => {
+    fetchDayStats(puzzle.day, totalTime).then(s => { if (s) setLeaderboard(s); });
+  }, []);
 
   function gradeEmoji(correct, total) {
     const p = correct / total;
@@ -860,6 +908,18 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
         {stats && !stats.history[puzzle.day]?.isNewBest && stats.bestTime && (
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#555555", letterSpacing: "0.06em" }}>BEST: {formatTime(stats.bestTime)}</p>
+          </div>
+        )}
+
+        {/* Daily leaderboard */}
+        {leaderboard && (
+          <div style={{ background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "14px 18px", textAlign: "center" }}>
+            <p style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FFFFFF", fontWeight: 700, marginBottom: "6px" }}>
+              Faster than <span style={{ color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,18px)" }}>{leaderboard.percentile}%</span> of players today
+            </p>
+            <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#666666" }}>
+              Avg: {formatTime(leaderboard.avg)} · Fastest: {formatTime(leaderboard.fastest)}
+            </p>
           </div>
         )}
 
@@ -1058,9 +1118,16 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
 // Already played screen
 // ─────────────────────────────────────────────────────────────────────────────
 function AlreadyPlayedScreen({ puzzle, stats }) {
-  const [timeLeft,  setTimeLeft]  = useState("");
-  const [copied,    setCopied]    = useState(false);
+  const [timeLeft,    setTimeLeft]    = useState("");
+  const [copied,      setCopied]      = useState(false);
+  const [leaderboard, setLeaderboard] = useState(null);
   const todayResult = stats.history[puzzle.day] || {};
+
+  useEffect(() => {
+    if (todayResult.time) {
+      fetchDayStats(puzzle.day, todayResult.time).then(s => { if (s) setLeaderboard(s); });
+    }
+  }, []);
 
   useEffect(() => {
     function tick() {
@@ -1132,6 +1199,18 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
             {todayResult.isNewBest && (
               <p style={{ fontSize: "clamp(10px,1.3vw,13px)", color: "#2ECC71", marginTop: "6px", letterSpacing: "0.06em" }}>⚡ NEW BEST TIME</p>
             )}
+          </div>
+        )}
+
+        {/* Daily leaderboard */}
+        {leaderboard && (
+          <div style={{ background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "14px 18px", textAlign: "center" }}>
+            <p style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FFFFFF", fontWeight: 700, marginBottom: "6px" }}>
+              Faster than <span style={{ color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,18px)" }}>{leaderboard.percentile}%</span> of players today
+            </p>
+            <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#666666" }}>
+              Avg: {formatTime(leaderboard.avg)} · Fastest: {formatTime(leaderboard.fastest)}
+            </p>
           </div>
         )}
 
@@ -1262,6 +1341,8 @@ export default function RuleBreaker() {
           const grade        = getOverallGrade(totalCorrect, totalItems);
           const updated      = recordResult(PUZZLE.day, grade, totalTime, totalCorrect, totalItems);
           setStats(updated);
+          // Submit anonymously to Supabase
+          submitCompletion(PUZZLE.day, totalTime, totalCorrect);
         }
         return n;
       });
