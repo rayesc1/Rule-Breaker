@@ -1010,6 +1010,60 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
   let currentPhase = 0;
   const correct = results.filter(x => x.correct).length;
 
+  // definitions: { [WORD]: { loading, text, partOfSpeech } | "none" }
+  const [definitions, setDefinitions] = useState({});
+  // expanded: set of words currently showing definition
+  const [expanded, setExpanded] = useState(new Set());
+
+  async function fetchDefinition(word) {
+    if (definitions[word] || definitions[word] === "none") return;
+    setDefinitions(prev => ({ ...prev, [word]: { loading: true } }));
+    try {
+      const res  = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+      const data = await res.json();
+      if (!Array.isArray(data) || !data[0]) throw new Error("no entry");
+      const meaning = data[0].meanings?.[0];
+      const def     = meaning?.definitions?.[0]?.definition || null;
+      const pos     = meaning?.partOfSpeech || null;
+      if (!def) throw new Error("no def");
+      setDefinitions(prev => ({ ...prev, [word]: { loading: false, text: def, partOfSpeech: pos } }));
+    } catch {
+      setDefinitions(prev => ({ ...prev, [word]: "none" }));
+    }
+  }
+
+  function toggleWord(word) {
+    const next = new Set(expanded);
+    if (next.has(word)) {
+      next.delete(word);
+    } else {
+      next.add(word);
+      fetchDefinition(word);
+    }
+    setExpanded(next);
+  }
+
+  function DefLine({ word }) {
+    const d = definitions[word];
+    if (!expanded.has(word)) return null;
+    if (!d || d.loading) return (
+      <div style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#555555", padding: "4px 0 6px", fontStyle: "italic" }}>
+        looking up…
+      </div>
+    );
+    if (d === "none") return (
+      <div style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#444444", padding: "4px 0 6px", fontStyle: "italic" }}>
+        no definition found
+      </div>
+    );
+    return (
+      <div style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#888888", padding: "4px 0 6px", lineHeight: 1.5 }}>
+        {d.partOfSpeech && <span style={{ color: "#FF4060", marginRight: "6px", fontStyle: "italic" }}>{d.partOfSpeech}</span>}
+        {d.text}
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position: "absolute", inset: 0, background: "#111111",
@@ -1038,6 +1092,11 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
           </button>
         </div>
 
+        {/* Hint */}
+        <div style={{ fontSize: "clamp(9px,1.2vw,11px)", color: "#444444", marginBottom: "10px", letterSpacing: "0.04em" }}>
+          Tap any word to see its definition
+        </div>
+
         {/* Starting rule label */}
         <div style={{
           padding: "10px 14px", marginBottom: "8px",
@@ -1054,7 +1113,7 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
           const inv  = rd.inversionPoints.includes(i);
           if (inv) currentPhase++;
           const fmt  = getItemFormat(rd, item);
-          const wordDisplay = fmt === "pair" ? `${item.left} · ${item.right}` : item.word;
+          const isPair = fmt === "pair";
 
           return (
             <div key={i}>
@@ -1069,29 +1128,70 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
                 </div>
               )}
               <div style={{
-                display: "flex", alignItems: "center", gap: "12px",
                 padding: "10px 4px",
                 borderBottom: "1px solid rgba(255,255,255,0.05)",
               }}>
-                <span style={{ fontSize: "14px", flexShrink: 0, lineHeight: 1 }}>
-                  {r.correct ? "🟢" : "🔴"}
-                </span>
-                <span style={{
-                  fontFamily: "'Konkhmer Sleokchher',sans-serif",
-                  fontSize: fmt === "pair" ? "clamp(12px,1.8vw,15px)" : "clamp(14px,2vw,18px)",
-                  color: r.correct ? "#FFFFFF" : "rgba(255,255,255,0.3)",
-                  flex: 1, lineHeight: 1.3,
-                }}>
-                  {wordDisplay}
-                </span>
-                <span style={{
-                  fontSize: "clamp(9px,1.2vw,11px)", letterSpacing: "0.04em",
-                  flexShrink: 0, fontWeight: 700,
-                  color: item.shouldAccept ? "#2ECC71" : "#FF4060",
-                  opacity: r.correct ? 0.5 : 1,
-                }}>
-                  {item.shouldAccept ? "ACCEPT" : "BREAK"}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "14px", flexShrink: 0, lineHeight: 1 }}>
+                    {r.correct ? "🟢" : "🔴"}
+                  </span>
+
+                  {isPair ? (
+                    /* Pair: two independently tappable words */
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button onClick={() => toggleWord(item.left)} style={{
+                        background: "transparent", border: "none", padding: 0,
+                        fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                        fontSize: "clamp(12px,1.8vw,15px)",
+                        color: expanded.has(item.left) ? "#FF4060" : (r.correct ? "#FFFFFF" : "rgba(255,255,255,0.3)"),
+                        cursor: "pointer", textDecoration: expanded.has(item.left) ? "underline" : "none",
+                      }}>
+                        {item.left}
+                      </button>
+                      <span style={{ color: "#444444", fontSize: "12px" }}>·</span>
+                      <button onClick={() => toggleWord(item.right)} style={{
+                        background: "transparent", border: "none", padding: 0,
+                        fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                        fontSize: "clamp(12px,1.8vw,15px)",
+                        color: expanded.has(item.right) ? "#FF4060" : (r.correct ? "#FFFFFF" : "rgba(255,255,255,0.3)"),
+                        cursor: "pointer", textDecoration: expanded.has(item.right) ? "underline" : "none",
+                      }}>
+                        {item.right}
+                      </button>
+                    </div>
+                  ) : (
+                    /* Single: whole word is tappable */
+                    <button onClick={() => toggleWord(item.word)} style={{
+                      background: "transparent", border: "none", padding: 0,
+                      fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                      fontSize: "clamp(14px,2vw,18px)",
+                      color: expanded.has(item.word) ? "#FF4060" : (r.correct ? "#FFFFFF" : "rgba(255,255,255,0.3)"),
+                      cursor: "pointer", flex: 1, textAlign: "left",
+                      textDecoration: expanded.has(item.word) ? "underline" : "none",
+                    }}>
+                      {item.word}
+                    </button>
+                  )}
+
+                  <span style={{
+                    fontSize: "clamp(9px,1.2vw,11px)", letterSpacing: "0.04em",
+                    flexShrink: 0, fontWeight: 700,
+                    color: item.shouldAccept ? "#2ECC71" : "#FF4060",
+                    opacity: r.correct ? 0.5 : 1,
+                  }}>
+                    {item.shouldAccept ? "ACCEPT" : "BREAK"}
+                  </span>
+                </div>
+
+                {/* Definition lines — inline expand */}
+                {isPair ? (
+                  <>
+                    {expanded.has(item.left)  && <div style={{ paddingLeft: "26px" }}><DefLine word={item.left} /></div>}
+                    {expanded.has(item.right) && <div style={{ paddingLeft: "26px" }}><DefLine word={item.right} /></div>}
+                  </>
+                ) : (
+                  <div style={{ paddingLeft: "26px" }}><DefLine word={item.word} /></div>
+                )}
               </div>
             </div>
           );
