@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#111111" />
+
+  <!-- SEO -->
+  <title>Rule Breaker: How We Built a Daily Word Game From Scratch</title>
+  <meta name="description" content="The story behind Rule Breaker — a daily word game built from scratch with no prior coding experience. How it works, what we learned, and what's next." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://rulebreaker.app/blog/how-we-built-rule-breaker" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Rule Breaker: How We Built a Daily Word Game From Scratch" />
+  <meta property="og:description" content="The story behind Rule Breaker — a daily word game built from scratch with no prior coding experience." />
+  <meta property="og:url" content="https://rulebreaker.app/blog/how-we-built-rule-breaker" />
+  <meta property="og:site_name" content="Rule Breaker" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Rule Breaker: How We Built a Daily Word Game From Scratch" />
+  <meta name="twitter:description" content="The story behind Rule Breaker — built from scratch with no prior coding experience." />
+  <meta name="twitter:site" content="@RuleBreakerApp" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Konkhmer+Sleokchher&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Vercel Analytics -->
+  <script defer src="/_vercel/insights/script.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #111111;
+      color: #FFFFFF;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 17px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #FF4060; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: #111111;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'Konkhmer Sleokchher', sans-serif;
+      font-size: 18px; color: #FFFFFF; text-decoration: none;
+    }
+    .nav-logo span { color: #FF4060; }
+    .nav-play {
+      background: #FF4060; color: #FFFFFF;
+      padding: 9px 22px; border-radius: 4px;
+      font-family: 'Konkhmer Sleokchher', sans-serif;
+      font-size: 13px; letter-spacing: 0.08em;
+      text-decoration: none; white-space: nowrap;
+    }
+    .nav-play:hover { text-decoration: none; opacity: 0.9; }
+
+    .wrapper {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+
+    .breadcrumb {
+      font-size: 13px; color: #666666;
+      margin-bottom: 32px;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .breadcrumb a { color: #666666; }
+    .breadcrumb a:hover { color: #FFFFFF; text-decoration: none; }
+    .breadcrumb span { color: #444444; }
+
+    .article-meta {
+      font-size: 13px; color: #666666;
+      letter-spacing: 0.04em; margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Konkhmer Sleokchher', sans-serif;
+      font-size: clamp(24px, 5vw, 36px);
+      line-height: 1.2; color: #FFFFFF;
+      margin-bottom: 32px;
+    }
+
+    .intro {
+      font-size: 18px; color: #CCCCCC;
+      margin-bottom: 40px; line-height: 1.7;
+    }
+
+    h2 {
+      font-family: 'Konkhmer Sleokchher', sans-serif;
+      font-size: clamp(17px, 3vw, 22px);
+      color: #FFFFFF; margin: 48px 0 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    p { margin-bottom: 20px; color: #CCCCCC; }
+
+    ul {
+      margin: 0 0 20px 20px;
+      color: #CCCCCC;
+    }
+    ul li { margin-bottom: 8px; line-height: 1.7; }
+
+    blockquote {
+      border-left: 3px solid #FF4060;
+      margin: 32px 0; padding: 4px 0 4px 24px;
+      font-size: 18px; color: #FFFFFF;
+      font-style: italic; line-height: 1.6;
+    }
+
+    .callout {
+      background: #1A1A1A;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 22px 24px;
+      margin: 32px 0;
+    }
+    .callout p { margin-bottom: 0; font-size: 15px; color: #999999; }
+    .callout strong { color: #FFFFFF; }
+
+    .cta-block {
+      background: #1A1A1A;
+      border: 1px solid rgba(255,64,96,0.25);
+      border-radius: 8px;
+      padding: 28px 26px;
+      margin: 48px 0 0;
+      text-align: center;
+    }
+    .cta-block p { color: #CCCCCC; margin-bottom: 18px; }
+    .cta-block a {
+      display: inline-block;
+      background: #FF4060; color: #FFFFFF;
+      padding: 13px 32px; border-radius: 4px;
+      font-family: 'Konkhmer Sleokchher', sans-serif;
+      font-size: 14px; letter-spacing: 0.08em;
+      text-decoration: none;
+    }
+    .cta-block a:hover { opacity: 0.9; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 40px 24px; text-align: center;
+      color: #444444; font-size: 13px;
+    }
+    footer a { color: #666666; }
+    footer a:hover { color: #FFFFFF; text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .wrapper { padding: 36px 18px 60px; }
+      nav { padding: 14px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">RULE <span>BREAKER!</span></a>
+    <a href="/" class="nav-play">PLAY TODAY</a>
+  </nav>
+
+  <main class="wrapper">
+
+    <div class="breadcrumb">
+      <a href="/">Home</a>
+      <span>›</span>
+      <a href="/blog">Blog</a>
+      <span>›</span>
+      <span>How We Built Rule Breaker</span>
+    </div>
+
+    <div class="article-meta">MARCH 17, 2026 &nbsp;·&nbsp; 6 MIN READ</div>
+    <h1>Rule Breaker: How We Built a Daily Word Game From Scratch</h1>
+
+    <p class="intro">
+      I had never written a line of code in my life. Now I have a live daily word game at my own domain, a blog, 60 days of validated puzzle content, and real players showing up every morning. Here's how that happened.
+    </p>
+
+    <h2>Where the idea came from</h2>
+
+    <p>
+      Like a lot of people, I started playing Wordle in 2022 and never really stopped. What hooked me wasn't guessing the word. It was the streak. Once you've hit 30 days in a row, missing feels genuinely bad in a way that's hard to explain. Game designers figured that out a long time ago.
+    </p>
+
+    <p>
+      The problem was that Wordle started feeling too easy. I wanted something with more pressure, more movement. A game where the rules could change on you. That's where Rule Breaker came from.
+    </p>
+
+    <p>
+      The concept is simple: a rule appears on screen, words follow, and you decide whether each word satisfies the rule or breaks it. ACCEPT or RULE BREAK. The twist is that the rule switches on you mid-round. You get a quick flash of the new rule, but the clock keeps running. Three rounds, escalating difficulty, fully timed.
+    </p>
+
+    <h2>The mechanics that make it work</h2>
+
+    <p>
+      The rule switch was the first idea and it turned out to be the most important one. Without it, the game is just a categorization quiz. With it, you have this moment where your brain is still running the old rule and the new one is fighting for space. That half-second of confusion is the whole game.
+    </p>
+
+    <p>
+      Each round has a different structure to keep things escalating:
+    </p>
+
+    <ul>
+      <li><strong>Round 1:</strong> Single words, one rule switch midway through</li>
+      <li><strong>Round 2:</strong> Word pairs where both words have to satisfy the rule, two switches</li>
+      <li><strong>Round 3:</strong> Singles and pairs mixed randomly, three switches, 40 items</li>
+    </ul>
+
+    <p>
+      Round 3 is where most people start feeling it. The format is unpredictable, the rules keep changing, and the clock doesn't care. It felt right to name that round "Rule Breaker."
+    </p>
+
+    <blockquote>
+      "The half-second of confusion when the rule switches is the whole game."
+    </blockquote>
+
+    <h2>Building it with no coding background</h2>
+
+    <p>
+      I used AI to help write the code. Not to vibe code my way through it blindly, but as a real collaborator. I described what I wanted, pushed back when something didn't feel right, and made every design decision myself. The font, the color palette, the copy on each screen, the round structure, the scoring system. All of that was intentional.
+    </p>
+
+    <p>
+      What I learned is that you don't need to know how to code to build something. You need to know what you want it to do and be willing to iterate until it does that. The tool is almost beside the point.
+    </p>
+
+    <div class="callout">
+      <p><strong>The stack, if you're curious:</strong> React, deployed on Vercel via GitHub. The entire game lives in one self-contained component. Puzzle data is generated and validated by a Node.js script, stored as static JSON, and fetched at load time. No backend, no database.</p>
+    </div>
+
+    <h2>The puzzle generation problem</h2>
+
+    <p>
+      The hardest part wasn't the game. It was the content. A daily game needs a new puzzle every day, and every puzzle needs to be fair. That means every word has to be checked against the rule it's assigned to, the correct answers have to be balanced so there's no obvious pattern, and the rules themselves need to vary enough that players aren't bored by Day 30.
+    </p>
+
+    <p>
+      We built a generation script that handles all of this. It uses a seeded random number generator keyed to the UTC date so every player in the world gets the same puzzle on the same day. The script generates puzzles, validates every single answer against the rule checker, and rejects any day that fails. Right now we have 60 days of content validated and live, with a library of 46 distinct rules in rotation.
+    </p>
+
+    <p>
+      The validation step was the thing that made it feel real. Being able to run a script and see "60 puzzles, 0 errors" is genuinely satisfying.
+    </p>
+
+    <h2>What's still being built</h2>
+
+    <p>
+      Rule Breaker is in early playtesting. The core loop is solid, streaks are tracked, and new puzzles drop every day at midnight UTC. But there's a lot still to do.
+    </p>
+
+    <p>
+      Word definitions in the review screen are coming. Right now you can tap any round card after finishing to see every word you played and whether you got it right, but there's no context for why. For a rule like "Contains a silent letter," being able to tap PSALM and see the definition would make the game feel more educational and less arbitrary.
+    </p>
+
+    <p>
+      Cross-device streak syncing is coming too. Right now streaks live in localStorage, which means they're tied to your browser on your device. That works fine for most people but it's not the full solution.
+    </p>
+
+    <h2>If you want to build something</h2>
+
+    <p>
+      The biggest obstacle isn't technical. It's deciding what you actually want to build and committing to it long enough to finish. Most ideas die in the gap between "this would be cool" and "I am going to do this specific thing."
+    </p>
+
+    <p>
+      Rule Breaker went from an idea to a live game in a few days. It's not perfect. But it's real, it's playable, and it gets better every session. That's more than most ideas ever become.
+    </p>
+
+    <div class="cta-block">
+      <p>Today's puzzle is live. Takes about five minutes. See how fast you can adapt.</p>
+      <a href="/">PLAY RULE BREAKER</a>
+    </div>
+
+  </main>
+
+  <footer>
+    <p style="margin-bottom: 10px;">
+      <a href="/">rulebreaker.app</a> &nbsp;·&nbsp;
+      <a href="/blog">Blog</a> &nbsp;·&nbsp;
+      <a href="https://x.com/RuleBreakerApp" target="_blank" rel="noopener">@RuleBreakerApp</a>
+    </p>
+    <p>© 2026 Rule Breaker. New puzzle every day.</p>
+  </footer>
+
+</body>
+</html>
