@@ -15,7 +15,7 @@
         ],
         "rules": [
           "Is a currency",
-          "Has more consonants than vowels"
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -323,7 +323,7 @@
           "Is exactly 6 letters long",
           "Is a gemstone",
           "Is a weather word",
-          "Contains exactly 3 vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)"
         ],
         "items": [
           {
@@ -566,7 +566,7 @@
         ],
         "rules": [
           "Ends with a vowel",
-          "Contains no vowels"
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -1667,7 +1667,7 @@
           15
         ],
         "rules": [
-          "Contains no vowels",
+          "Contains no vowels (A, E, I, O, U)",
           "Is an emotion"
         ],
         "words": [
@@ -2526,7 +2526,7 @@
         "rules": [
           "Starts with a vowel",
           "Is exactly 4 letters long",
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Contains the letter N"
         ],
         "items": [
@@ -3320,7 +3320,7 @@
           15
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a currency"
         ],
         "words": [
@@ -3628,7 +3628,7 @@
         "rules": [
           "Is exactly 4 letters long",
           "Contains the letter N",
-          "Contains exactly 3 vowels",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
           "Contains no repeated letters"
         ],
         "items": [
@@ -4179,7 +4179,7 @@
         "rules": [
           "Is a weather word",
           "Is a mythical creature",
-          "Has more vowels than consonants",
+          "Has more vowels (A, E, I, O, U) than consonants",
           "Contains the letter T"
         ],
         "items": [
@@ -4731,7 +4731,7 @@
           "Is a musical instrument",
           "Is a tree",
           "Ends with a vowel",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "items": [
           {
@@ -5281,7 +5281,7 @@
         "rules": [
           "Contains the letter T",
           "Is a body part",
-          "Has more vowels than consonants",
+          "Has more vowels (A, E, I, O, U) than consonants",
           "Is an emotion"
         ],
         "items": [
@@ -5833,7 +5833,7 @@
           "Contains the letter R",
           "Is more than 6 letters long",
           "Is exactly 6 letters long",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "items": [
           {
@@ -6383,7 +6383,7 @@
         "rules": [
           "Contains no repeated letters",
           "Is a weather word",
-          "Has more vowels than consonants",
+          "Has more vowels (A, E, I, O, U) than consonants",
           "Is a music genre"
         ],
         "items": [
@@ -8035,7 +8035,7 @@
         ],
         "rules": [
           "Contains the letter T",
-          "Contains exactly 3 vowels",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
           "Is a food or ingredient",
           "Contains the letter S"
         ],
@@ -8588,7 +8588,7 @@
           "Is an emotion",
           "Is a color",
           "Is exactly 4 letters long",
-          "Has more vowels than consonants"
+          "Has more vowels (A, E, I, O, U) than consonants"
         ],
         "items": [
           {
@@ -9382,7 +9382,7 @@
         ],
         "rules": [
           "Is a number word",
-          "Contains no vowels"
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -9933,7 +9933,7 @@
         ],
         "rules": [
           "Is a currency",
-          "Contains no vowels"
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -10240,7 +10240,7 @@
         "rules": [
           "Contains the letter N",
           "Contains no repeated letters",
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a living thing"
         ],
         "items": [
@@ -10484,7 +10484,7 @@
         ],
         "rules": [
           "Is a vehicle",
-          "Contains exactly 3 vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -10790,8 +10790,8 @@
         ],
         "rules": [
           "Is a weather word",
-          "All vowels in the word are the same",
-          "Has more consonants than vowels",
+          "All vowels (A, E, I, O, U) in the word are the same",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Contains the letter N"
         ],
         "items": [
@@ -11340,7 +11340,7 @@
           30
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is exactly 6 letters long",
           "Is a mythical creature",
           "Is a body part"
@@ -12137,7 +12137,7 @@
         ],
         "rules": [
           "Is exactly 5 letters long",
-          "Contains no vowels"
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -12443,8 +12443,8 @@
         ],
         "rules": [
           "Is a mythical creature",
-          "Contains exactly 3 vowels",
-          "Has more vowels than consonants",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
+          "Has more vowels (A, E, I, O, U) than consonants",
           "Contains a double letter"
         ],
         "items": [
@@ -12995,7 +12995,7 @@
         "rules": [
           "Contains the letter N",
           "Starts with a vowel",
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Contains the letter R"
         ],
         "items": [
@@ -15198,7 +15198,7 @@
         ],
         "rules": [
           "Is a living thing",
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Contains the letter S",
           "Contains the letter N"
         ],
@@ -15750,7 +15750,7 @@
         "rules": [
           "Is a country",
           "Is a sport",
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a musical instrument"
         ],
         "items": [
@@ -16850,7 +16850,7 @@
           30
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a tree",
           "Is more than 6 letters long",
           "Is a color"
@@ -17403,7 +17403,7 @@
         "rules": [
           "Is a food or ingredient",
           "Contains the letter R",
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is an emotion"
         ],
         "items": [
@@ -17952,7 +17952,7 @@
           30
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Contains the letter N",
           "Contains the letter T",
           "Is more than 6 letters long"
@@ -18198,7 +18198,7 @@
         ],
         "rules": [
           "Contains a double letter",
-          "Has more consonants than vowels"
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -19300,7 +19300,7 @@
         ],
         "rules": [
           "Is a palindrome",
-          "Has more consonants than vowels"
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -19850,7 +19850,7 @@
           15
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is a planet"
         ],
         "words": [
@@ -20401,7 +20401,7 @@
           15
         ],
         "rules": [
-          "Contains exactly 3 vowels",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
           "Is a palindrome"
         ],
         "words": [
@@ -21811,7 +21811,7 @@
         "rules": [
           "Is an emotion",
           "Is a music genre",
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a musical instrument"
         ],
         "items": [
@@ -22054,7 +22054,7 @@
           15
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is more than 6 letters long"
         ],
         "words": [
@@ -23465,7 +23465,7 @@
           "Contains the letter T",
           "Is exactly 5 letters long",
           "Is a body part",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "items": [
           {
@@ -24015,7 +24015,7 @@
         "rules": [
           "Is exactly 6 letters long",
           "Is a food or ingredient",
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a country"
         ],
         "items": [
@@ -24565,9 +24565,9 @@
         ],
         "rules": [
           "Ends with a vowel",
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is a living thing",
-          "Has more consonants than vowels"
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "items": [
           {
@@ -26463,7 +26463,7 @@
         ],
         "rules": [
           "Is a tree",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "words": [
           {
@@ -27321,7 +27321,7 @@
         "rules": [
           "Is an emotion",
           "Contains the letter N",
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Ends with a vowel"
         ],
         "items": [
@@ -27565,7 +27565,7 @@
         ],
         "rules": [
           "Starts and ends with the same letter",
-          "Contains exactly 3 vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -27870,7 +27870,7 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is a vehicle",
           "Is a body part",
           "Is a musical instrument"
@@ -28116,7 +28116,7 @@
         ],
         "rules": [
           "Ends with a vowel",
-          "Has more consonants than vowels"
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -30074,7 +30074,7 @@
           30
         ],
         "rules": [
-          "Has more vowels than consonants",
+          "Has more vowels (A, E, I, O, U) than consonants",
           "Is a living thing",
           "Starts with a vowel",
           "Is a color"
@@ -31176,7 +31176,7 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Starts and ends with the same letter",
           "Is a food or ingredient",
           "Ends with a vowel"
@@ -31727,7 +31727,7 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is exactly 5 letters long",
           "Is a country",
           "Starts with a vowel"
@@ -32279,7 +32279,7 @@
         ],
         "rules": [
           "Contains the letter T",
-          "Contains exactly 3 vowels",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
           "Contains the letter R",
           "Is exactly 4 letters long"
         ],
@@ -34176,7 +34176,7 @@
           15
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a tree"
         ],
         "words": [
@@ -35279,7 +35279,7 @@
         ],
         "rules": [
           "Is a music genre",
-          "Contains no vowels"
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -35584,7 +35584,7 @@
           30
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a body part",
           "Is an occupation",
           "Is more than 6 letters long"
@@ -36135,8 +36135,8 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
-          "Contains exactly 3 vowels",
+          "All vowels (A, E, I, O, U) in the word are the same",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
           "Is an emotion",
           "Is a sport"
         ],
@@ -36686,10 +36686,10 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
-          "Has more consonants than vowels",
+          "All vowels (A, E, I, O, U) in the word are the same",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is a country",
-          "Contains exactly 3 vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)"
         ],
         "items": [
           {
@@ -37237,10 +37237,10 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Contains the letter T",
-          "Has more vowels than consonants",
-          "Has more consonants than vowels"
+          "Has more vowels (A, E, I, O, U) than consonants",
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "items": [
           {
@@ -37483,7 +37483,7 @@
         ],
         "rules": [
           "Is more than 6 letters long",
-          "Contains exactly 3 vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -39686,7 +39686,7 @@
           15
         ],
         "rules": [
-          "Contains no vowels",
+          "Contains no vowels (A, E, I, O, U)",
           "Is a weather word"
         ],
         "words": [
@@ -39994,8 +39994,8 @@
         "rules": [
           "Is a living thing",
           "Is more than 6 letters long",
-          "All vowels in the word are the same",
-          "Has more consonants than vowels"
+          "All vowels (A, E, I, O, U) in the word are the same",
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "items": [
           {
@@ -40543,7 +40543,7 @@
           30
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is exactly 4 letters long",
           "Contains the letter R",
           "Is exactly 5 letters long"
@@ -40789,7 +40789,7 @@
         ],
         "rules": [
           "Contains the letter T",
-          "Contains no vowels"
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -41646,7 +41646,7 @@
         ],
         "rules": [
           "Is exactly 5 letters long",
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is more than 6 letters long",
           "Ends with a vowel"
         ],
@@ -42993,7 +42993,7 @@
         ],
         "rules": [
           "Contains a silent letter",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "words": [
           {
@@ -43543,7 +43543,7 @@
           15
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is an emotion"
         ],
         "words": [
@@ -44402,7 +44402,7 @@
         "rules": [
           "Contains the letter R",
           "Is more than 6 letters long",
-          "Contains exactly 3 vowels",
+          "Contains exactly 3 vowels (A, E, I, O, U)",
           "Contains no repeated letters"
         ],
         "items": [
@@ -45196,7 +45196,7 @@
           15
         ],
         "rules": [
-          "All vowels in the word are the same",
+          "All vowels (A, E, I, O, U) in the word are the same",
           "Is an emotion"
         ],
         "words": [
@@ -45503,7 +45503,7 @@
         ],
         "rules": [
           "Contains the letter R",
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Contains the letter S",
           "Is a food or ingredient"
         ],
@@ -45748,7 +45748,7 @@
         ],
         "rules": [
           "Is a color",
-          "Has more consonants than vowels"
+          "Has more consonants than vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -46056,7 +46056,7 @@
           "Is a food or ingredient",
           "Is a mythical creature",
           "Ends with a vowel",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "items": [
           {
@@ -47155,10 +47155,10 @@
           30
         ],
         "rules": [
-          "Has more consonants than vowels",
+          "Has more consonants than vowels (A, E, I, O, U)",
           "Is exactly 6 letters long",
           "Is exactly 5 letters long",
-          "Contains exactly 3 vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)"
         ],
         "items": [
           {
@@ -47709,7 +47709,7 @@
           "Is a tree",
           "Is a currency",
           "Is a weather word",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "items": [
           {
@@ -47951,8 +47951,8 @@
           15
         ],
         "rules": [
-          "Contains exactly 3 vowels",
-          "Contains no vowels"
+          "Contains exactly 3 vowels (A, E, I, O, U)",
+          "Contains no vowels (A, E, I, O, U)"
         ],
         "words": [
           {
@@ -48811,7 +48811,7 @@
           "Contains the letter S",
           "Is a living thing",
           "Is a food or ingredient",
-          "All vowels in the word are the same"
+          "All vowels (A, E, I, O, U) in the word are the same"
         ],
         "items": [
           {
