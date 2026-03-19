@@ -66,7 +66,7 @@ function saveStats(stats) {
   try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {}
 }
 
-function recordResult(dayNumber, grade, totalTime, correct, total) {
+function recordResult(dayNumber, grade, totalTime, correct, total, roundResults) {
   const stats = loadStats();
   const yesterday = dayNumber - 1;
   const newStreak = stats.lastPlayedDay === yesterday
@@ -75,6 +75,10 @@ function recordResult(dayNumber, grade, totalTime, correct, total) {
     ? stats.streak
     : 1;
   const isNewBest = stats.bestTime === null || totalTime < stats.bestTime;
+  // Store per-round breakdown so AlreadyPlayedScreen can show accurate share copy
+  const rounds = roundResults
+    ? roundResults.map(r => ({ correct: r.filter(x => x.correct).length, total: r.length }))
+    : null;
   const updated = {
     lastPlayedDay: dayNumber,
     streak:        newStreak,
@@ -83,7 +87,7 @@ function recordResult(dayNumber, grade, totalTime, correct, total) {
     totalPlayed:   stats.totalPlayed + 1,
     history: {
       ...stats.history,
-      [dayNumber]: { grade, time: totalTime, correct, total, isNewBest },
+      [dayNumber]: { grade, time: totalTime, correct, total, isNewBest, rounds },
     },
   };
   saveStats(updated);
@@ -1030,14 +1034,15 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
   }
 
   function buildShare() {
-    // localStorage only stores overall result, not per-round breakdown
-    // so use overall grade emoji for the share line
-    const emoji = gradeEmoji(todayResult.correct, todayResult.total);
     const streakPart = stats ? `  🔥${stats.streak}` : "";
+    // Use stored per-round breakdown if available, otherwise fall back to overall emoji
+    const roundLine = todayResult.rounds
+      ? todayResult.rounds.map((r, i) => `R${i + 1}: ${gradeEmoji(r.correct, r.total)}`).join("  ")
+      : `${gradeEmoji(todayResult.correct, todayResult.total)} ${todayResult.grade}`;
     const lines = [
       `RULE BREAKER! #${puzzle.number}`,
       "",
-      `${emoji} ${todayResult.grade}`,
+      roundLine,
       "",
       `${todayResult.correct}/${todayResult.total} · ${formatTime(todayResult.time)}${streakPart}`,
       "rulebreaker.app",
@@ -1228,7 +1233,7 @@ export default function RuleBreaker() {
           const totalCorrect = latestResults.flat().filter(x => x.correct).length;
           const totalItems   = PUZZLE.rounds.reduce((a, rd) => a + rd.total, 0);
           const grade        = getOverallGrade(totalCorrect, totalItems);
-          const updated      = recordResult(PUZZLE.day, grade, totalTime, totalCorrect, totalItems);
+          const updated      = recordResult(PUZZLE.day, grade, totalTime, totalCorrect, totalItems, latestResults);
           setStats(updated);
           submitCompletion(PUZZLE.day, totalTime, totalCorrect);
           return finalTimes;
