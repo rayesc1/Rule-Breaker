@@ -1223,7 +1223,7 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Already played screen
 // ─────────────────────────────────────────────────────────────────────────────
-function AlreadyPlayedScreen({ puzzle, stats }) {
+function AlreadyPlayedScreen({ puzzle, stats, onViewResults }) {
   const [timeLeft,    setTimeLeft]    = useState("");
   const [copied,      setCopied]      = useState(false);
   const [leaderboard, setLeaderboard] = useState(null);
@@ -1248,20 +1248,29 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
     return () => clearInterval(id);
   }, []);
 
-  function gradeEmoji(p) {
+  function gradeEmoji(correct, total) {
+    const p = correct / total;
     if (p >= 0.85) return "🟢";
     if (p >= 0.5)  return "🟡";
     return "🔴";
   }
 
   function buildShare() {
-    const pct = todayResult.correct / todayResult.total;
+    // Match ResultsScreen share format exactly — per-round emoji line
+    const roundLine = puzzle.rounds.map((r, i) => {
+      const rKey = `round_${i}`;
+      const correct = todayResult[rKey]?.correct ?? null;
+      const total   = r.total;
+      if (correct === null) return `R${i + 1}: 🟡`;
+      return `R${i + 1}: ${gradeEmoji(correct, total)}`;
+    }).join("  ");
+    const streakPart = stats ? `  🔥${stats.streak}` : "";
     const lines = [
       `RULE BREAKER! #${puzzle.number}`,
       "",
-      `${gradeEmoji(pct)} ${todayResult.grade}`,
+      roundLine,
       "",
-      `${todayResult.correct}/${todayResult.total} · ${formatTime(todayResult.time)}  🔥${stats.streak}`,
+      `${todayResult.correct}/${todayResult.total} · ${formatTime(todayResult.time)}${streakPart}`,
       "rulebreaker.app",
     ];
     return lines.join("\n");
@@ -1372,6 +1381,17 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
               FEEDBACK
             </button>
           </div>
+          {onViewResults && (
+            <button onClick={onViewResults} style={{
+              width: "100%", padding: "clamp(12px,2vw,16px)",
+              background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: "4px", color: "#888888",
+              fontFamily: "'Konkhmer Sleokchher',sans-serif",
+              fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em", cursor: "pointer",
+            }}>
+              VIEW TODAY'S RESULTS
+            </button>
+          )}
         </div>
 
       </div>
@@ -1558,7 +1578,7 @@ export default function RuleBreaker() {
     );
   }
 
-  if (screen === "already_played") return <AlreadyPlayedScreen puzzle={PUZZLE} stats={stats} />;
+  if (screen === "already_played") return <AlreadyPlayedScreen puzzle={PUZZLE} stats={stats} onViewResults={() => setScreen("results")} />;
   if (screen === "intro")          return <IntroScreen onPlay={() => { setRound(0); setScreen("round_intro"); }} puzzle={PUZZLE} />;
   if (screen === "round_intro")    return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} />;
   if (screen === "rule")           return <RuleScreen rd={rd} rule={rule} countdown={countdown} />;
