@@ -307,7 +307,7 @@ function msUntilNextUtcMidnight() {
 // Supabase — anonymous time submission + daily stats
 // ─────────────────────────────────────────────────────────────────────────────
 const SB_URL = "https://hvnuhcltsgheuktuacta.supabase.co";
-const SB_KEY = "sb_publishable_6BvzW4FxXO4rArsByE225g_XlU-Knpo";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bnVoY2x0c2doZXVrdHVhY3RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MTI4NjIsImV4cCI6MjA4OTM4ODg2Mn0.c89rwv0wmmd3tcXRxDXLc2hNPnxX1lG6FGSKVNv37g4";
 
 async function submitCompletion(dayNumber, totalTimeMs, correct) {
   try {
