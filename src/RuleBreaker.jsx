@@ -337,12 +337,13 @@ async function fetchDayStats(dayNumber, myTimeMs) {
     );
     const rows = await res.json();
     if (!rows || rows.length === 0) return null;
-    const times = rows.map(r => r.total_time_ms).sort((a, b) => a - b);
-    const avg     = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    const fastest = times[0];
-    const slower  = times.filter(t => t > myTimeMs).length;
-    const percentile = Math.round((slower / times.length) * 100);
-    return { percentile, avg, fastest };
+    const times       = rows.map(r => r.total_time_ms).sort((a, b) => a - b);
+    const avg         = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    const fastest     = times[0];
+    const slower      = times.filter(t => t > myTimeMs).length;
+    const percentile  = Math.round((slower / times.length) * 100);
+    const totalPlayers = times.length;
+    return { percentile, avg, fastest, totalPlayers };
   } catch { return null; }
 }
 
@@ -915,7 +916,12 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
         {leaderboard && (
           <div style={{ background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "14px 18px", textAlign: "center" }}>
             <p style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FFFFFF", fontWeight: 700, marginBottom: "6px" }}>
-              Faster than <span style={{ color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,18px)" }}>{leaderboard.percentile}%</span> of players today
+              {leaderboard.totalPlayers === 1
+                ? "You're the first to finish today!"
+                : leaderboard.percentile === 0
+                ? "You finished today's puzzle"
+                : <>{"Faster than "}<span style={{ color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,18px)" }}>{leaderboard.percentile}%</span>{" of players today"}</>
+              }
             </p>
             <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#666666" }}>
               Avg: {formatTime(leaderboard.avg)} · Fastest: {formatTime(leaderboard.fastest)}
@@ -1306,7 +1312,12 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
         {leaderboard && (
           <div style={{ background: "#1A1A1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "14px 18px", textAlign: "center" }}>
             <p style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FFFFFF", fontWeight: 700, marginBottom: "6px" }}>
-              Faster than <span style={{ color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,18px)" }}>{leaderboard.percentile}%</span> of players today
+              {leaderboard.totalPlayers === 1
+                ? "You're the first to finish today!"
+                : leaderboard.percentile === 0
+                ? "You finished today's puzzle"
+                : <>{"Faster than "}<span style={{ color: "#FF4060", fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(14px,2vw,18px)" }}>{leaderboard.percentile}%</span>{" of players today"}</>
+              }
             </p>
             <p style={{ fontSize: "clamp(10px,1.3vw,12px)", color: "#666666" }}>
               Avg: {formatTime(leaderboard.avg)} · Fastest: {formatTime(leaderboard.fastest)}
