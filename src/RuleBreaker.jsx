@@ -445,16 +445,10 @@ const STYLES = `
 
     .rb-vignette { display: block; }
 
-    /* Desktop: framed card, frosted glass over topology */
+    /* Desktop: full screen like mobile — no framed card */
     .rb-card {
-      width: 400px;
-      height: min(820px, 92dvh);
-      background: rgba(13,13,13,0.82);
-      border: 1px solid rgba(255,255,255,0.11);
-      border-radius: 16px;
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 30px 90px rgba(0,0,0,0.72);
+      width: 100%;
+      height: 100%;
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: none;
@@ -721,7 +715,7 @@ function RuleSwitchScreen({ newRule, progress}) {
 // the brief blank frame between words, keeping layout stable. wordKey on each
 // word span re-triggers the CSS wordIn animation for a clean fade-in.
 // ─────────────────────────────────────────────────────────────────────────────
-function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer}) {
+function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, onAnswer, puzzleNumber }) {
   const fmt    = displayItem ? getItemFormat(rd, displayItem) : "single";
   const isPair = fmt === "pair";
 
@@ -729,42 +723,69 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
     <Shell flash={flash}>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,2.5vw,24px)" }}>
 
-        <RoundLabel label={rd.label} name={rd.name} />
+        {/* Header row — round label left, daily number right */}
+        <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(11px,1.4vw,13px)", color: "#FFFFFF", letterSpacing: "0.05em" }}>
+            {rd.label}: <span style={{ color: "#FF4060" }}>{rd.name}</span>
+          </span>
+          <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: "clamp(11px,1.4vw,13px)", color: "#FFFFFF", letterSpacing: "0.02em" }}>
+            DAILY #{puzzleNumber}
+          </span>
+        </div>
+
         <ProgressBar value={progress} />
 
         <p style={{ fontSize: "clamp(12px,1.6vw,16px)", color: "#FF4060", fontWeight: 500, lineHeight: 1.4, minHeight: "1.4em", textAlign: "center" }}>
           {rule}
         </p>
 
-        {/* Word area */}
-        <div style={{ width: "100%", opacity: displayItem ? 1 : 0, transition: displayItem ? "opacity 0.06s ease" : "none" }}>
-          {!isPair ? (
-            <WordBox>
-              <span key={wordKey} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.word ?? "", false), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block" }}>
-                {displayItem?.word ?? ""}
-              </span>
-            </WordBox>
-          ) : (
-            <div style={{
-              width: "100%", maxWidth: MAX_W,
-              border: "2px solid #FFFFFF", borderRadius: "4px",
-              display: "flex", alignItems: "stretch",
-              minHeight: "clamp(110px,18vw,160px)", background: "rgba(13,13,13,0.5)",
+        {/* Word box — always visible. Only the word text fades in/out. */}
+        {!isPair ? (
+          <WordBox>
+            <span key={wordKey} style={{
+              fontFamily: "'Konkhmer Sleokchher',sans-serif",
+              fontSize: wordFontSize(displayItem?.word ?? "", false),
+              color: "#FFFFFF", letterSpacing: "0.02em", display: "block",
+              opacity: displayItem ? 1 : 0,
+              animation: displayItem ? "wordIn 0.12s ease forwards" : "none",
             }}>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
-                <span key={wordKey + "L"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.left ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", whiteSpace: "nowrap" }}>
-                  {displayItem?.left ?? ""}
-                </span>
-              </div>
-              <div style={{ width: "2px", background: "#FFFFFF", flexShrink: 0 }} />
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
-                <span key={wordKey + "R"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.right ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", whiteSpace: "nowrap" }}>
-                  {displayItem?.right ?? ""}
-                </span>
-              </div>
+              {displayItem?.word ?? ""}
+            </span>
+          </WordBox>
+        ) : (
+          <div style={{
+            width: "100%", maxWidth: MAX_W,
+            border: "2px solid #FFFFFF", borderRadius: "4px",
+            display: "flex", alignItems: "stretch",
+            minHeight: "clamp(110px,18vw,160px)", background: "rgba(13,13,13,0.5)",
+          }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
+              <span key={wordKey + "L"} style={{
+                fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                fontSize: wordFontSize(displayItem?.left ?? "", true),
+                color: "#FFFFFF", letterSpacing: "0.02em", display: "block",
+                textAlign: "center", whiteSpace: "nowrap",
+                opacity: displayItem ? 1 : 0,
+                animation: displayItem ? "wordIn 0.12s ease forwards" : "none",
+              }}>
+                {displayItem?.left ?? ""}
+              </span>
             </div>
-          )}
-        </div>
+            <div style={{ width: "2px", background: "#FFFFFF", flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
+              <span key={wordKey + "R"} style={{
+                fontFamily: "'Konkhmer Sleokchher',sans-serif",
+                fontSize: wordFontSize(displayItem?.right ?? "", true),
+                color: "#FFFFFF", letterSpacing: "0.02em", display: "block",
+                textAlign: "center", whiteSpace: "nowrap",
+                opacity: displayItem ? 1 : 0,
+                animation: displayItem ? "wordIn 0.12s ease forwards" : "none",
+              }}>
+                {displayItem?.right ?? ""}
+              </span>
+            </div>
+          </div>
+        )}
 
         <ActionButtons disabled={!active} onRuleBreak={() => onAnswer(false)} onAccept={() => onAnswer(true)} />
       </div>
@@ -1545,7 +1566,7 @@ export default function RuleBreaker() {
   if (screen === "round_intro")    return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} />;
   if (screen === "rule")           return <RuleScreen rd={rd} rule={rule} countdown={countdown} />;
   if (screen === "rule_switch")    return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} />;
-  if (screen === "game")           return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} />;
+  if (screen === "game")           return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} progress={prog} onAnswer={handleAnswer} puzzleNumber={PUZZLE.number} />;
   if (screen === "results")        return <ResultsScreen allResults={allResults} times={times} puzzle={PUZZLE} stats={stats} />;
   return null;
 }
