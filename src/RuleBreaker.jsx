@@ -83,8 +83,17 @@ function topoStart(canvas) {
   _topoLastT  = null;
 
   function resize() {
-    _topoCanvas.width  = window.innerWidth;
-    _topoCanvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w   = window.innerWidth;
+    const h   = window.innerHeight;
+    // Size the canvas buffer at physical pixel resolution
+    _topoCanvas.width  = Math.round(w * dpr);
+    _topoCanvas.height = Math.round(h * dpr);
+    // Scale CSS display back to logical pixels
+    _topoCanvas.style.width  = w + "px";
+    _topoCanvas.style.height = h + "px";
+    // Scale context so all draw calls use CSS pixel coordinates
+    _topoCtx.scale(dpr, dpr);
   }
   resize();
   window.addEventListener("resize", resize);
@@ -96,7 +105,8 @@ function topoStart(canvas) {
     _topoLastT = ts;
     const t = ts / 1000;
     const ctx = _topoCtx;
-    const W = _topoCanvas.width, H = _topoCanvas.height;
+    // Use logical CSS pixel dimensions — context is already scaled by DPR
+    const W = window.innerWidth, H = window.innerHeight;
 
     // Smooth color
     const spd = _tc.holding ? _tc.riseSpd : _tc.fallSpd;
@@ -449,8 +459,7 @@ const STYLES = `
 
     .rb-vignette { display: block; }
 
-    /* Desktop: increase blur to smooth aliasing on larger screens */
-    .rb-topo-canvas { filter: blur(1.8px); }
+    /* Desktop: DPR-aware canvas renders crisply — no extra blur needed */
 
     /* Desktop card — 30% opacity, no shadow */
     .rb-card {
