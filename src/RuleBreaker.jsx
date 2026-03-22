@@ -38,8 +38,8 @@ const TOPO_LINES   = 95;
 const TOPO_XSTEP   = 5;
 const TOPO_AMP     = 0.38;
 const TOPO_JITTER  = Array.from({ length: TOPO_LINES }, (_, i) => (_topoRng(i * 13 + 7) - 0.5) * 0.55);
-const TOPO_OPACITY = Array.from({ length: TOPO_LINES }, (_, i) =>  0.55 + _topoRng(i * 7  + 3) * 0.45);
-const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  0.9  + _topoRng(i * 11 + 5) * 0.7);
+const TOPO_OPACITY = Array.from({ length: TOPO_LINES }, (_, i) =>  0.72 + _topoRng(i * 7  + 3) * 0.28);
+const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  1.1  + _topoRng(i * 11 + 5) * 0.7);
 
 // ── Color state ──
 const _tc = {
@@ -143,7 +143,7 @@ function topoStart(canvas) {
       ctx.lineTo(W, prevY);
 
       const ridgeN = Math.sin(ny * Math.PI * 6 + t * 0.15) * 0.5 + 0.5;
-      const alpha  = Math.min(0.90, (0.10 + ridgeN * 0.10 + surge * 0.30) * TOPO_OPACITY[li]);
+      const alpha  = Math.min(0.92, (0.22 + ridgeN * 0.14 + surge * 0.35) * TOPO_OPACITY[li]);
       ctx.lineWidth   = TOPO_WIDTH[li];
       ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`;
       ctx.stroke();
@@ -436,7 +436,7 @@ const STYLES = `
   /* Mobile: full screen, semi-transparent so topology shows through */
   .rb-card {
     width: 100%; height: 100%;
-    background: rgba(13,13,13,0.55);
+    background: rgba(13,13,13,0.38);
     color: #FFFFFF;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
