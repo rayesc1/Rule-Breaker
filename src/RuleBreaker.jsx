@@ -717,8 +717,13 @@ function RuleSwitchScreen({ newRule, progress}) {
 // word span re-triggers the CSS wordIn animation for a clean fade-in.
 // ─────────────────────────────────────────────────────────────────────────────
 function GameScreen({ rd, rule, displayItem, wordKey, active, flash, correctFlash, progress, onAnswer, puzzleNumber }) {
-  const fmt    = displayItem ? getItemFormat(rd, displayItem) : "single";
-  const isPair = fmt === "pair";
+  // lastFmtRef remembers the previous item's format so the null frame between
+  // words always renders the same box structure as what was just showing.
+  // Without this, displayItem=null defaulted to "single", unmounting the pair
+  // box and making the divider flash on every pair word transition.
+  const lastFmtRef = useRef("single");
+  if (displayItem) lastFmtRef.current = getItemFormat(rd, displayItem);
+  const isPair = lastFmtRef.current === "pair";
 
   // Border pulse animation — fires on correct answer, color matches which button was pressed
   const boxAnim = correctFlash === "accept" ? "boxPulseGreen 0.22s ease forwards"
