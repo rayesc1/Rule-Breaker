@@ -10,6 +10,157 @@ const ADVANCE_MS     = 200;
 const MAX_W          = "460px";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Topology background engine
+// Module-level singleton — survives React re-renders without restarting.
+// Shell mounts the canvas and calls topoStart(); cleanup calls topoStop().
+// Any component can call topoSetColor / topoForceColor to react to game events.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Noise ──
+function _topoNoise(x, y, t) {
+  return (
+    Math.sin(x * 3.1  + y * 1.7  + t * 0.22) * 0.32 +
+    Math.sin(x * 7.3  + y * 4.1  + t * 0.17 + 1.3) * 0.22 +
+    Math.sin(x * 1.9  + y * 8.7  + t * 0.28 + 2.7) * 0.18 +
+    Math.sin(x * 12.1 + y * 5.3  + t * 0.13 + 4.1) * 0.12 +
+    Math.sin(x * 5.7  + y * 11.3 + t * 0.35 + 0.8) * 0.10 +
+    Math.sin(x * 2.3  + y * 3.1  + t * 0.08 + 5.5) * 0.06
+  );
+}
+
+function _topoRng(seed) {
+  seed = (seed ^ 61) ^ (seed >>> 16); seed *= 9;
+  seed ^= seed >>> 4; seed *= 0x27d4eb2d; seed ^= seed >>> 15;
+  return (seed >>> 0) / 0xFFFFFFFF;
+}
+
+const TOPO_LINES   = 95;
+const TOPO_XSTEP   = 5;
+const TOPO_AMP     = 0.38;
+const TOPO_JITTER  = Array.from({ length: TOPO_LINES }, (_, i) => (_topoRng(i * 13 + 7) - 0.5) * 0.55);
+const TOPO_OPACITY = Array.from({ length: TOPO_LINES }, (_, i) =>  0.55 + _topoRng(i * 7  + 3) * 0.45);
+const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  0.9  + _topoRng(i * 11 + 5) * 0.7);
+
+// ── Color state ──
+const _tc = {
+  r: 255, g: 255, b: 255,     // current (smoothed)
+  tr: 255, tg: 255, tb: 255,  // target
+  holding: false,
+  riseSpd: 8.0,
+  fallSpd: 0.55,
+};
+let _tcTimer = null;
+
+function topoSetColor(r, g, b, holdMs) {
+  _tc.tr = r; _tc.tg = g; _tc.tb = b;
+  _tc.holding = true;
+  if (_tcTimer) clearTimeout(_tcTimer);
+  _tcTimer = setTimeout(() => {
+    _tc.tr = 255; _tc.tg = 255; _tc.tb = 255;
+    _tc.holding = false;
+  }, holdMs ?? 1400);
+}
+
+function topoForceColor(r, g, b, holdMs) {
+  _tc.r = r; _tc.g = g; _tc.b = b;
+  topoSetColor(r, g, b, holdMs);
+}
+
+// ── Turbulence ──
+const _tt = { val: 0, decay: 1.6 };
+function topoTurb(amt) { _tt.val = Math.min(1, _tt.val + amt); }
+
+// ── RAF loop ──
+let _topoCanvas = null;
+let _topoCtx    = null;
+let _topoRaf    = null;
+let _topoLastT  = null;
+
+function topoStart(canvas) {
+  if (_topoRaf) cancelAnimationFrame(_topoRaf);
+  _topoCanvas = canvas;
+  _topoCtx    = canvas.getContext("2d");
+  _topoLastT  = null;
+
+  function resize() {
+    _topoCanvas.width  = window.innerWidth;
+    _topoCanvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener("resize", resize);
+  canvas._topoResize = resize;
+
+  function draw(ts) {
+    if (!_topoLastT) _topoLastT = ts;
+    const dt = Math.min((ts - _topoLastT) / 1000, 0.05);
+    _topoLastT = ts;
+    const t = ts / 1000;
+    const ctx = _topoCtx;
+    const W = _topoCanvas.width, H = _topoCanvas.height;
+
+    // Smooth color
+    const spd = _tc.holding ? _tc.riseSpd : _tc.fallSpd;
+    const k   = Math.min(1, spd * dt);
+    _tc.r += (_tc.tr - _tc.r) * k;
+    _tc.g += (_tc.tg - _tc.g) * k;
+    _tc.b += (_tc.tb - _tc.b) * k;
+
+    // Turbulence decay
+    _tt.val = Math.max(0, _tt.val - dt * _tt.decay);
+
+    // Background
+    ctx.fillStyle = "#0d0d0d";
+    ctx.fillRect(0, 0, W, H);
+
+    const amp     = H * (TOPO_AMP + _tt.val * 0.22);
+    const spacing = (H + amp * 2) / TOPO_LINES;
+    const numX    = Math.ceil(W / TOPO_XSTEP) + 1;
+    ctx.lineCap   = "round";
+
+    const cr = Math.round(_tc.r);
+    const cg = Math.round(_tc.g);
+    const cb = Math.round(_tc.b);
+    const surge = Math.min(1,
+      (Math.abs(_tc.r - 255) + Math.abs(_tc.g - 255) + Math.abs(_tc.b - 255)) / 300
+    );
+
+    for (let li = 0; li < TOPO_LINES; li++) {
+      const baseY = -amp + li * spacing + TOPO_JITTER[li] * spacing;
+      const ny    = li / TOPO_LINES;
+
+      ctx.beginPath();
+      let firstX = true, prevX = 0, prevY = 0;
+      for (let xi = 0; xi <= numX; xi++) {
+        const x  = xi * TOPO_XSTEP;
+        const nx = x / W;
+        let n = _topoNoise(nx, ny, t);
+        if (_tt.val > 0.05) n += _topoNoise(nx * 3.1 + 5, ny * 2.7 + 3, t * 4.2) * _tt.val * 0.35;
+        const y = baseY + n * amp;
+        if (firstX) { ctx.moveTo(x, y); firstX = false; }
+        else { ctx.quadraticCurveTo(prevX, prevY, (prevX + x) * 0.5, (prevY + y) * 0.5); }
+        prevX = x; prevY = y;
+      }
+      ctx.lineTo(W, prevY);
+
+      const ridgeN = Math.sin(ny * Math.PI * 6 + t * 0.15) * 0.5 + 0.5;
+      const alpha  = Math.min(0.90, (0.10 + ridgeN * 0.10 + surge * 0.30) * TOPO_OPACITY[li]);
+      ctx.lineWidth   = TOPO_WIDTH[li];
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`;
+      ctx.stroke();
+    }
+
+    _topoRaf = requestAnimationFrame(draw);
+  }
+
+  _topoRaf = requestAnimationFrame(draw);
+}
+
+function topoStop(canvas) {
+  if (_topoRaf) { cancelAnimationFrame(_topoRaf); _topoRaf = null; }
+  if (canvas?._topoResize) window.removeEventListener("resize", canvas._topoResize);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function getItem(rd, i) {
@@ -245,25 +396,44 @@ async function loadDailyPuzzle() {
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Konkhmer+Sleokchher&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body, #root { height: 100%; background: #111111; color: #FFFFFF; }
+  html, body, #root { height: 100%; background: #0d0d0d; color: #FFFFFF; }
   body { font-family: 'Konkhmer Sleokchher', sans-serif; overflow: hidden; }
   button { cursor: pointer; border: none; font-family: 'Konkhmer Sleokchher', sans-serif; }
 
-  @keyframes flashGreen { 0%,100%{background:#111111} 50%{background:rgba(46,204,113,0.18)} }
-  @keyframes flashRed   { 0%,100%{background:#111111} 50%{background:rgba(255,64,96,0.18)} }
+  @keyframes flashRed   { 0%,100%{background:transparent} 50%{background:rgba(255,64,96,0.18)} }
   @keyframes wordIn     { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
   @keyframes pulse      { 0%,100%{opacity:1} 50%{opacity:0.35} }
+  @keyframes shake      { 0%{transform:translateX(0)} 18%{transform:translateX(-6px)} 36%{transform:translateX(5px)} 54%{transform:translateX(-4px)} 72%{transform:translateX(3px)} 100%{transform:translateX(0)} }
 
-  .rb-backdrop {
-    width: 100%; height: 100dvh;
-    background: #111111;
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
+  /* Topology canvas — sits behind everything */
+  .rb-topo-canvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    display: block;
+    filter: blur(0.8px);
   }
 
+  /* Vignette — desktop only */
+  .rb-vignette {
+    display: none;
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 75% 85% at 50% 50%, transparent 20%, rgba(8,8,8,0.72) 100%);
+    pointer-events: none; z-index: 1;
+  }
+
+  .rb-backdrop {
+    position: fixed; inset: 0;
+    width: 100%; height: 100dvh;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; z-index: 2;
+  }
+
+  /* Mobile: full screen, semi-transparent so topology shows through */
   .rb-card {
     width: 100%; height: 100%;
-    background: #111111; color: #FFFFFF;
+    background: rgba(13,13,13,0.55);
+    color: #FFFFFF;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: 24px 20px;
@@ -273,24 +443,24 @@ const STYLES = `
   @media (min-width: 768px) {
     html, body, #root { overflow: hidden; }
 
-    .rb-backdrop {
-      background: #0C0C0C;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px);
-      background-size: 24px 24px;
-    }
+    .rb-vignette { display: block; }
 
+    /* Desktop: framed card, frosted glass over topology */
     .rb-card {
       width: 400px;
       height: min(820px, 92dvh);
-      border: 1px solid rgba(255,255,255,0.13);
+      background: rgba(13,13,13,0.82);
+      border: 1px solid rgba(255,255,255,0.11);
       border-radius: 16px;
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 30px 90px rgba(0,0,0,0.72);
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: none;
     }
     .rb-card::-webkit-scrollbar { display: none; }
 
-    /* Title capped so BREAKER! never overflows the 400px card */
     .rb-title { font-size: 72px !important; }
   }
 `;
@@ -299,16 +469,26 @@ const STYLES = `
 // Shared UI
 // ─────────────────────────────────────────────────────────────────────────────
 function Shell({ children, flash }) {
-  const anim = flash === "green" ? "flashGreen 0.45s ease"
-             : flash === "red"   ? "flashRed 0.45s ease"
-             : "none";
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (canvasRef.current) topoStart(canvasRef.current);
+    return () => { if (canvasRef.current) topoStop(canvasRef.current); };
+  }, []); // eslint-disable-line
+
+  const anim = flash === "red" ? "flashRed 0.45s ease" : "none";
+
   return (
-    <div className="rb-backdrop">
-      <style>{STYLES}</style>
-      <div className="rb-card" style={{ animation: anim }}>
-        {children}
+    <>
+      <canvas ref={canvasRef} className="rb-topo-canvas" />
+      <div className="rb-vignette" />
+      <div className="rb-backdrop">
+        <style>{STYLES}</style>
+        <div className="rb-card" style={{ animation: anim }}>
+          {children}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -331,7 +511,7 @@ function RuleBox({ rule }) {
     <div style={{
       width: "100%", maxWidth: MAX_W, border: "2px solid #FFFFFF",
       borderRadius: "4px", padding: "clamp(20px,4vw,32px) clamp(16px,3vw,28px)",
-      textAlign: "center", background: "#111111",
+      textAlign: "center", background: "rgba(13,13,13,0.5)",
     }}>
       <span style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontWeight: 500, fontSize: "clamp(16px,2.5vw,24px)", color: "#FFFFFF", lineHeight: 1.4, display: "block" }}>
         {rule}
@@ -346,7 +526,7 @@ function WordBox({ children, style }) {
       width: "100%", maxWidth: MAX_W, border: "2px solid #FFFFFF",
       borderRadius: "4px", display: "flex", alignItems: "center",
       justifyContent: "center", minHeight: "clamp(110px,18vw,160px)",
-      background: "#111111", ...style,
+      background: "rgba(13,13,13,0.5)", ...style,
     }}>
       {children}
     </div>
@@ -547,7 +727,7 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
 
   return (
     <Shell flash={flash}>
-      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(12px,2vw,18px)" }}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,2.5vw,24px)" }}>
 
         <RoundLabel label={rd.label} name={rd.name} />
         <ProgressBar value={progress} />
@@ -556,8 +736,8 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
           {rule}
         </p>
 
-        {/* Word area — margin adds breathing room above/below the box */}
-        <div style={{ width: "100%", opacity: displayItem ? 1 : 0, transition: displayItem ? "opacity 0.06s ease" : "none", margin: "clamp(8px,2vw,20px) 0" }}>
+        {/* Word area */}
+        <div style={{ width: "100%", opacity: displayItem ? 1 : 0, transition: displayItem ? "opacity 0.06s ease" : "none" }}>
           {!isPair ? (
             <WordBox>
               <span key={wordKey} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.word ?? "", false), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block" }}>
@@ -565,12 +745,11 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, progress, o
               </span>
             </WordBox>
           ) : (
-            /* Single box, vertical white divider down the centre — matches mockup */
             <div style={{
               width: "100%", maxWidth: MAX_W,
               border: "2px solid #FFFFFF", borderRadius: "4px",
               display: "flex", alignItems: "stretch",
-              minHeight: "clamp(110px,18vw,160px)", background: "#111111",
+              minHeight: "clamp(110px,18vw,160px)", background: "rgba(13,13,13,0.5)",
             }}>
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
                 <span key={wordKey + "L"} style={{ fontFamily: "'Konkhmer Sleokchher',sans-serif", fontSize: wordFontSize(displayItem?.left ?? "", true), color: "#FFFFFF", letterSpacing: "0.02em", animation: "wordIn 0.12s ease forwards", display: "block", textAlign: "center", whiteSpace: "nowrap" }}>
@@ -1268,10 +1447,20 @@ export default function RuleBreaker() {
     if (!active || !displayItem) return;
     setActive(false);
     const correct = accepted === displayItem.shouldAccept;
-    setFlash(correct ? "green" : "red");
     const r = round, i = idx, p = phase;
-    // Build updated results synchronously from current allResults —
-    // safe here because active=false prevents any concurrent answers
+
+    if (correct) {
+      // Correct answer — color the topology, no card flash
+      if (accepted) topoSetColor(42, 195, 105, 1400);   // ACCEPT → green
+      else          topoSetColor(220, 50, 72, 1400);     // RULE BREAK → red
+      setFlash(null);
+    } else {
+      // Wrong answer — harsh red snap + turbulence + card flash
+      topoForceColor(255, 28, 52, 1600);
+      topoTurb(0.85);
+      setFlash("red");
+    }
+
     const newResults = allResults.map(a => [...a]);
     newResults[r].push({ correct, item: displayItem });
     setAllResults(newResults);
@@ -1303,6 +1492,7 @@ export default function RuleBreaker() {
   useEffect(() => {
     if (screen !== "rule_switch") return;
     setSwitchPct(0);
+    topoSetColor(200, 40, 65, 3000);   // red during rule switch
     const startT    = Date.now();
     const capturedR = round;
     const capturedI = idx;
@@ -1314,6 +1504,7 @@ export default function RuleBreaker() {
         animRef.current = requestAnimationFrame(tick);
       } else {
         cancelAnimationFrame(animRef.current);
+        topoSetColor(42, 195, 105, 1800);  // green when resuming
         const roundData = PUZZLE.rounds[capturedR];
         setScreen("game");
         loadItem(roundData, capturedI);
