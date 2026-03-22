@@ -7,7 +7,7 @@ const MIN_DISPLAY_MS = 300;
 const PENALTY_MS     = 500;
 const INVERSION_MS   = 2500;
 const ADVANCE_MS     = 200;
-const MAX_W          = "460px";
+const MAX_W          = "440px";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Topology background engine
@@ -449,17 +449,23 @@ const STYLES = `
 
     .rb-vignette { display: block; }
 
-    /* Desktop: full screen like mobile — no framed card */
+    /* Desktop: framed card, frosted glass over topology */
     .rb-card {
-      width: 100%;
-      height: 100%;
+      width: 480px;
+      height: min(900px, 92dvh);
+      background: rgba(13,13,13,0.82);
+      border: 1px solid rgba(255,255,255,0.11);
+      border-radius: 16px;
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 30px 90px rgba(0,0,0,0.72);
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: none;
     }
     .rb-card::-webkit-scrollbar { display: none; }
 
-    .rb-title { font-size: 88px !important; letter-spacing: 0.04em !important; }
+    .rb-title { font-size: 96px !important; letter-spacing: 0.04em !important; }
   }
 `;
 
