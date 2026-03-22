@@ -465,7 +465,7 @@ const STYLES = `
     .rb-card {
       width: 480px;
       height: min(900px, 92dvh);
-      background: rgba(13,13,13,0.30);
+      background: rgba(13,13,13,0.50);
       border: none;
       border-radius: 16px;
       backdrop-filter: none;
