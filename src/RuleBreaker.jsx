@@ -171,6 +171,110 @@ function topoStop(canvas) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Dot grid engine — desktop only (≥768px)
+// Shares the same _tc color state as topology so all game event reactions
+// (green/red/turbulence) work identically. Dots render cleanly at any
+// resolution — no aliasing issues at large viewport sizes.
+// ─────────────────────────────────────────────────────────────────────────────
+let _dotCanvas = null;
+let _dotCtx    = null;
+let _dotRaf    = null;
+
+function dotStart(canvas) {
+  if (_dotRaf) cancelAnimationFrame(_dotRaf);
+  _dotCanvas = canvas;
+  _dotCtx    = canvas.getContext("2d");
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w   = window.innerWidth;
+    const h   = window.innerHeight;
+    _dotCanvas.width  = Math.round(w * dpr);
+    _dotCanvas.height = Math.round(h * dpr);
+    _dotCanvas.style.width  = w + "px";
+    _dotCanvas.style.height = h + "px";
+    _dotCtx.scale(dpr, dpr);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+  canvas._dotResize = resize;
+
+  function draw(ts) {
+    const t   = ts / 1000;
+    const ctx = _dotCtx;
+    const W   = window.innerWidth;
+    const H   = window.innerHeight;
+    const cx  = W / 2, cy = H / 2;
+
+    // Smooth color (shared _tc state)
+    const spd = _tc.holding ? _tc.riseSpd : _tc.fallSpd;
+    const k   = Math.min(1, spd * 0.016);
+    _tc.r += (_tc.tr - _tc.r) * k;
+    _tc.g += (_tc.tg - _tc.g) * k;
+    _tc.b += (_tc.tb - _tc.b) * k;
+    _tt.val = Math.max(0, _tt.val - 0.016 * _tt.decay);
+
+    ctx.fillStyle = "#0d0d0d";
+    ctx.fillRect(0, 0, W, H);
+
+    const cr  = Math.round(_tc.r);
+    const cg  = Math.round(_tc.g);
+    const cb  = Math.round(_tc.b);
+    const surge = Math.min(1,
+      (Math.abs(_tc.r - 255) + Math.abs(_tc.g - 255) + Math.abs(_tc.b - 255)) / 300
+    );
+
+    // Grid spacing — tighter on larger screens feels denser and more alive
+    const COLS = Math.floor(W / 38);
+    const ROWS = Math.floor(H / 38);
+    const gx   = W / COLS;
+    const gy   = H / ROWS;
+
+    // Turbulence adds a secondary fast ripple from a random offset center
+    const turbFreq = _tt.val * 0.06;
+    const turbCx   = cx + Math.sin(t * 2.1) * cx * 0.3;
+    const turbCy   = cy + Math.cos(t * 1.7) * cy * 0.3;
+
+    for (let c = 0; c <= COLS; c++) {
+      for (let r = 0; r <= ROWS; r++) {
+        const x    = c * gx;
+        const y    = r * gy;
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        const maxD = Math.sqrt(cx * cx + cy * cy);
+
+        // Primary wave from center
+        const wave = Math.sin(dist * 0.038 - t * 1.8) * 0.5 + 0.5;
+
+        // Turbulence secondary wave
+        const turbDist = Math.sqrt((x - turbCx) ** 2 + (y - turbCy) ** 2);
+        const turbWave = _tt.val > 0.05
+          ? (Math.sin(turbDist * turbFreq - t * 5) * 0.5 + 0.5) * _tt.val
+          : 0;
+
+        const combined = Math.min(1, wave + turbWave);
+        const falloff  = 1 - (dist / maxD) * 0.3; // slight center-to-edge fade
+        const alpha    = (0.06 + combined * 0.28 + surge * 0.22) * falloff;
+        const radius   = 1.0 + combined * 1.4 + surge * 0.8;
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`;
+        ctx.fill();
+      }
+    }
+
+    _dotRaf = requestAnimationFrame(draw);
+  }
+
+  _dotRaf = requestAnimationFrame(draw);
+}
+
+function dotStop(canvas) {
+  if (_dotRaf) { cancelAnimationFrame(_dotRaf); _dotRaf = null; }
+  if (canvas?._dotResize) window.removeEventListener("resize", canvas._dotResize);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function getItem(rd, i) {
@@ -488,8 +592,16 @@ function Shell({ children, flash }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (canvasRef.current) topoStart(canvasRef.current);
-    return () => { if (canvasRef.current) topoStop(canvasRef.current); };
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    // Desktop (≥768px) → dot grid. Mobile → topology.
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop) dotStart(canvas);
+    else           topoStart(canvas);
+    return () => {
+      if (isDesktop) dotStop(canvas);
+      else           topoStop(canvas);
+    };
   }, []); // eslint-disable-line
 
   const anim = flash === "red" ? "flashRed 0.45s ease" : "none";
@@ -1441,11 +1553,17 @@ export default function RuleBreaker() {
   const animRef         = useRef(null);
   const loadingCanvasRef = useRef(null);
 
-  // Topology for loading/error screen — starts immediately on mount,
-  // cleaned up when the puzzle loads and Shell takes over.
+  // Loading screen background — dot grid on desktop, topology on mobile.
   useEffect(() => {
-    if (loadingCanvasRef.current) topoStart(loadingCanvasRef.current);
-    return () => { if (loadingCanvasRef.current) topoStop(loadingCanvasRef.current); };
+    const canvas = loadingCanvasRef.current;
+    if (!canvas) return;
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop) dotStart(canvas);
+    else           topoStart(canvas);
+    return () => {
+      if (isDesktop) dotStop(canvas);
+      else           topoStop(canvas);
+    };
   }, []); // eslint-disable-line
 
   // Fetch today's puzzle on mount, then check if already played
