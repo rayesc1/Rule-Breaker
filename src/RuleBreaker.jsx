@@ -298,19 +298,19 @@ async function fetchDayStats(dayNumber, myTimeMs) {
 function wordFontSize(word, isPair) {
   const l = (word || "").length;
   if (isPair) {
-    if (l <= 3) return "clamp(44px, 9vw, 62px)";
-    if (l <= 4) return "clamp(36px, 8vw, 52px)";
-    if (l <= 5) return "clamp(30px, 7vw, 44px)";
-    if (l <= 6) return "clamp(26px, 6vw, 36px)";
-    if (l <= 7) return "clamp(22px, 5vw, 30px)";
-    if (l <= 8) return "clamp(18px, 4vw, 24px)";
-    return "clamp(14px, 3.2vw, 20px)";
+    if (l <= 3) return "clamp(52px, 11vw, 72px)";
+    if (l <= 4) return "clamp(44px, 9vw, 62px)";
+    if (l <= 5) return "clamp(36px, 8vw, 52px)";
+    if (l <= 6) return "clamp(30px, 7vw, 44px)";
+    if (l <= 7) return "clamp(26px, 6vw, 36px)";
+    if (l <= 8) return "clamp(22px, 5vw, 30px)";
+    return "clamp(18px, 4vw, 24px)";
   }
-  if (l <= 4)  return "clamp(72px, 15vw, 108px)";
-  if (l <= 6)  return "clamp(56px, 11vw, 88px)";
-  if (l <= 8)  return "clamp(44px, 9vw, 70px)";
-  if (l <= 10) return "clamp(34px, 7vw, 54px)";
-  return "clamp(26px, 5vw, 42px)";
+  if (l <= 4)  return "clamp(84px, 18vw, 120px)";
+  if (l <= 6)  return "clamp(66px, 14vw, 100px)";
+  if (l <= 8)  return "clamp(54px, 11vw, 82px)";
+  if (l <= 10) return "clamp(42px, 9vw, 64px)";
+  return "clamp(32px, 7vw, 50px)";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -525,7 +525,7 @@ function ActionButtons({ onRuleBreak, onAccept, disabled, flashBtn }) {
         flex: 1, padding: "clamp(14px,2.5vw,20px) 8px",
         background: "transparent", border: "2px solid #FF4060", borderRadius: "4px",
         color: "#FF4060", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700,
-        fontSize: "clamp(15px,2vw,18px)", letterSpacing: "0.06em",
+        fontSize: "clamp(16px,2.2vw,20px)", letterSpacing: "0.06em",
         opacity: disabled ? 0.45 : 1, transition: "opacity 0.15s",
         animation: flashBtn === "break" ? "btnFillRed 0.22s ease forwards" : "none",
       }}>
@@ -535,7 +535,7 @@ function ActionButtons({ onRuleBreak, onAccept, disabled, flashBtn }) {
         flex: 1, padding: "clamp(14px,2.5vw,20px) 8px",
         background: "transparent", border: "2px solid #2ECC71", borderRadius: "4px",
         color: "#2ECC71", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700,
-        fontSize: "clamp(15px,2vw,18px)", letterSpacing: "0.06em",
+        fontSize: "clamp(16px,2.2vw,20px)", letterSpacing: "0.06em",
         opacity: disabled ? 0.45 : 1, transition: "opacity 0.15s",
         animation: flashBtn === "accept" ? "btnFillGreen 0.22s ease forwards" : "none",
       }}>
@@ -731,27 +731,27 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, correctFlas
     width: "100%", maxWidth: MAX_W,
     border: "2px solid #FFFFFF", borderRadius: "4px",
     display: "flex", alignItems: "stretch",
-    minHeight: "clamp(130px,22vw,190px)", background: "rgba(13,13,13,0.5)",
+    minHeight: "clamp(150px,28vw,220px)", background: "rgba(13,13,13,0.5)",
     animation: boxAnim,
   };
 
   return (
     <Shell flash={flash}>
-      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(16px,2.5vw,24px)" }}>
+      <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(12px,2vw,20px)" }}>
 
         {/* Header row — round label left, daily number right */}
         <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(13px,1.6vw,15px)", color: "#FFFFFF", letterSpacing: "0.05em" }}>
+          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(14px,1.8vw,16px)", color: "#FFFFFF", letterSpacing: "0.05em" }}>
             {rd.label}: <span style={{ color: "#FF4060" }}>{rd.name}</span>
           </span>
-          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(13px,1.6vw,15px)", color: "#FFFFFF", letterSpacing: "0.02em" }}>
+          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(14px,1.8vw,16px)", color: "#FFFFFF", letterSpacing: "0.02em" }}>
             DAILY #{puzzleNumber}
           </span>
         </div>
 
         <ProgressBar value={progress} />
 
-        <p style={{ fontSize: "clamp(15px,2vw,20px)", color: "#FF4060", fontWeight: 600, lineHeight: 1.4, minHeight: "1.4em", textAlign: "center" }}>
+        <p style={{ fontSize: "clamp(17px,2.4vw,22px)", color: "#FF4060", fontWeight: 600, lineHeight: 1.4, minHeight: "1.4em", textAlign: "center" }}>
           {rule}
         </p>
 
