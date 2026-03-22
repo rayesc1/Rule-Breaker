@@ -688,7 +688,7 @@ function RuleSwitchScreen({ newRule, progress}) {
     <Shell>
       <div style={{
         position: "absolute", inset: 0,
-        background: "rgba(8,8,8,0.88)",
+        background: "rgba(8,8,8,0.55)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         display: "flex", flexDirection: "column",
