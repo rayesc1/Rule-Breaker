@@ -38,8 +38,8 @@ const TOPO_LINES   = 95;
 const TOPO_XSTEP   = 5;
 const TOPO_AMP     = 0.38;
 const TOPO_JITTER  = Array.from({ length: TOPO_LINES }, (_, i) => (_topoRng(i * 13 + 7) - 0.5) * 0.55);
-const TOPO_OPACITY = Array.from({ length: TOPO_LINES }, (_, i) =>  0.72 + _topoRng(i * 7  + 3) * 0.28);
-const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  1.6  + _topoRng(i * 11 + 5) * 0.8);
+const TOPO_OPACITY = Array.from({ length: TOPO_LINES }, (_, i) =>  0.55 + _topoRng(i * 7  + 3) * 0.45);
+const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  0.9  + _topoRng(i * 11 + 5) * 0.7);
 
 // ── Color state ──
 const _tc = {
@@ -153,7 +153,7 @@ function topoStart(canvas) {
       ctx.lineTo(W, prevY);
 
       const ridgeN = Math.sin(ny * Math.PI * 6 + t * 0.15) * 0.5 + 0.5;
-      const alpha  = Math.min(0.92, (0.22 + ridgeN * 0.14 + surge * 0.35) * TOPO_OPACITY[li]);
+      const alpha  = Math.min(0.90, (0.10 + ridgeN * 0.10 + surge * 0.30) * TOPO_OPACITY[li]);
       ctx.lineWidth   = TOPO_WIDTH[li];
       ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha.toFixed(3)})`;
       ctx.stroke();
@@ -185,6 +185,14 @@ function dotStart(canvas) {
   _dotCanvas = canvas;
   _dotCtx    = canvas.getContext("2d");
 
+  // Mouse tracking — raw position for glow
+  const _mouse = { x: -9999, y: -9999 };
+  function onMouseMove(e) { _mouse.x = e.clientX; _mouse.y = e.clientY; }
+  window.addEventListener("mousemove", onMouseMove);
+  canvas._dotMouseMove = onMouseMove;
+
+  const CURSOR_GLOW_RADIUS = 120;
+
   function resize() {
     const dpr = window.devicePixelRatio || 1;
     const w   = window.innerWidth;
@@ -214,6 +222,8 @@ function dotStart(canvas) {
     _tc.b += (_tc.tb - _tc.b) * k;
     _tt.val = Math.max(0, _tt.val - 0.016 * _tt.decay);
 
+    const cursorOnScreen = _mouse.x > 0 && _mouse.x < W && _mouse.y > 0 && _mouse.y < H;
+
     ctx.fillStyle = "#0d0d0d";
     ctx.fillRect(0, 0, W, H);
 
@@ -224,13 +234,12 @@ function dotStart(canvas) {
       (Math.abs(_tc.r - 255) + Math.abs(_tc.g - 255) + Math.abs(_tc.b - 255)) / 300
     );
 
-    // Grid spacing — tighter on larger screens feels denser and more alive
     const COLS = Math.floor(W / 38);
     const ROWS = Math.floor(H / 38);
     const gx   = W / COLS;
     const gy   = H / ROWS;
+    const maxD = Math.sqrt((W * W + H * H) / 4);
 
-    // Turbulence adds a secondary fast ripple from a random offset center
     const turbFreq = _tt.val * 0.06;
     const turbCx   = cx + Math.sin(t * 2.1) * cx * 0.3;
     const turbCy   = cy + Math.cos(t * 1.7) * cy * 0.3;
@@ -240,21 +249,28 @@ function dotStart(canvas) {
         const x    = c * gx;
         const y    = r * gy;
         const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-        const maxD = Math.sqrt(cx * cx + cy * cy);
 
-        // Primary wave from center
         const wave = Math.sin(dist * 0.038 - t * 1.8) * 0.5 + 0.5;
 
-        // Turbulence secondary wave
         const turbDist = Math.sqrt((x - turbCx) ** 2 + (y - turbCy) ** 2);
         const turbWave = _tt.val > 0.05
           ? (Math.sin(turbDist * turbFreq - t * 5) * 0.5 + 0.5) * _tt.val
           : 0;
 
         const combined = Math.min(1, wave + turbWave);
-        const falloff  = 1 - (dist / maxD) * 0.3; // slight center-to-edge fade
-        const alpha    = (0.06 + combined * 0.28 + surge * 0.22) * falloff;
-        const radius   = 1.0 + combined * 1.4 + surge * 0.8;
+        const falloff  = 1 - (dist / maxD) * 0.3;
+        let alpha  = (0.06 + combined * 0.28 + surge * 0.22) * falloff;
+        let radius = 1.0 + combined * 1.4 + surge * 0.8;
+
+        // Cursor glow — dots near mouse brighten and grow
+        if (cursorOnScreen) {
+          const cursorDist = Math.sqrt((x - _mouse.x) ** 2 + (y - _mouse.y) ** 2);
+          if (cursorDist < CURSOR_GLOW_RADIUS) {
+            const glow = (1 - cursorDist / CURSOR_GLOW_RADIUS) ** 2;
+            alpha  = Math.min(0.9, alpha + glow * 0.55);
+            radius = radius + glow * 2.0;
+          }
+        }
 
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -271,7 +287,8 @@ function dotStart(canvas) {
 
 function dotStop(canvas) {
   if (_dotRaf) { cancelAnimationFrame(_dotRaf); _dotRaf = null; }
-  if (canvas?._dotResize) window.removeEventListener("resize", canvas._dotResize);
+  if (canvas?._dotResize)    window.removeEventListener("resize",    canvas._dotResize);
+  if (canvas?._dotMouseMove) window.removeEventListener("mousemove", canvas._dotMouseMove);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -529,7 +546,7 @@ const STYLES = `
     width: 100%; height: 100%;
     pointer-events: none; z-index: 0;
     display: block;
-    filter: blur(1.5px);
+    filter: blur(0.8px);
   }
 
   /* Vignette — desktop only */
@@ -563,7 +580,8 @@ const STYLES = `
 
     .rb-vignette { display: block; }
 
-    /* Desktop: DPR-aware canvas renders crisply — no extra blur needed */
+    /* Desktop: DPR-aware canvas renders crisply — no blur on dots */
+    .rb-topo-canvas { filter: none; }
 
     /* Desktop card — 30% opacity, no shadow */
     .rb-card {
