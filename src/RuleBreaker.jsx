@@ -449,16 +449,16 @@ const STYLES = `
 
     .rb-vignette { display: block; }
 
-    /* Desktop: framed card, frosted glass over topology */
+    /* Desktop: invisible container — topology shows fully, content still confined */
     .rb-card {
       width: 480px;
       height: min(900px, 92dvh);
-      background: rgba(13,13,13,0.82);
-      border: 1px solid rgba(255,255,255,0.11);
+      background: transparent;
+      border: none;
       border-radius: 16px;
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 30px 90px rgba(0,0,0,0.72);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: none;
