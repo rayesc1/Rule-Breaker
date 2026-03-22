@@ -39,7 +39,7 @@ const TOPO_XSTEP   = 5;
 const TOPO_AMP     = 0.38;
 const TOPO_JITTER  = Array.from({ length: TOPO_LINES }, (_, i) => (_topoRng(i * 13 + 7) - 0.5) * 0.55);
 const TOPO_OPACITY = Array.from({ length: TOPO_LINES }, (_, i) =>  0.72 + _topoRng(i * 7  + 3) * 0.28);
-const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  1.1  + _topoRng(i * 11 + 5) * 0.7);
+const TOPO_WIDTH   = Array.from({ length: TOPO_LINES }, (_, i) =>  1.6  + _topoRng(i * 11 + 5) * 0.8);
 
 // ── Color state ──
 const _tc = {
@@ -425,7 +425,7 @@ const STYLES = `
     width: 100%; height: 100%;
     pointer-events: none; z-index: 0;
     display: block;
-    filter: blur(0.8px);
+    filter: blur(1.5px);
   }
 
   /* Vignette — desktop only */
