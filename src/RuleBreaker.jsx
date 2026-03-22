@@ -781,7 +781,7 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, correctFlas
                 {displayItem?.left ?? ""}
               </span>
             </div>
-            <div style={{ width: "2px", background: "#FFFFFF", flexShrink: 0 }} />
+            <div style={{ width: "2px", background: "#FFFFFF", flexShrink: 0, opacity: 1, animation: "none" }} />
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 10px" }}>
               <span key={wordKey + "R"} style={{
                 fontFamily: "'Barlow Condensed',sans-serif",
