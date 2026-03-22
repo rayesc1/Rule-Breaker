@@ -422,7 +422,7 @@ const STYLES = `
   .rb-vignette {
     display: none;
     position: fixed; inset: 0;
-    background: radial-gradient(ellipse 75% 85% at 50% 50%, transparent 20%, rgba(8,8,8,0.72) 100%);
+    background: radial-gradient(ellipse 75% 85% at 50% 50%, transparent 20%, rgba(8,8,8,0.50) 100%);
     pointer-events: none; z-index: 1;
   }
 
@@ -449,11 +449,14 @@ const STYLES = `
 
     .rb-vignette { display: block; }
 
-    /* Desktop: invisible container — topology shows fully, content still confined */
+    /* Desktop: increase blur to smooth aliasing on larger screens */
+    .rb-topo-canvas { filter: blur(1.8px); }
+
+    /* Desktop card — 30% opacity, no shadow */
     .rb-card {
       width: 480px;
       height: min(900px, 92dvh);
-      background: transparent;
+      background: rgba(13,13,13,0.30);
       border: none;
       border-radius: 16px;
       backdrop-filter: none;
