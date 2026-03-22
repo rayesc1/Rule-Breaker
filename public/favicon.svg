@@ -1,5 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="18" fill="#111111"/>
-  <text x="50" y="76" text-anchor="middle" font-family="'Arial Black', Impact, sans-serif" font-weight="900" font-size="72" fill="#FFFFFF">R</text>
-  <rect x="12" y="84" width="76" height="7" rx="3" fill="#FF4060"/>
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#0d0d0d"/>
+  <path d="M0 6  Q8 4   16 6  Q24 8  32 6"  fill="none" stroke="#1f1f1f" stroke-width="1.05"/>
+  <path d="M0 9  Q8 6.5 16 9  Q24 11.5 32 9"  fill="none" stroke="#242424" stroke-width="1.05"/>
+  <path d="M0 12 Q8 9  16 12 Q24 15 32 12" fill="none" stroke="#292929" stroke-width="1.05"/>
+  <path d="M0 15 Q8 11.5 16 15 Q24 18.5 32 15" fill="none" stroke="#2e2e2e" stroke-width="1.05"/>
+  <path d="M0 18 Q8 14.5 16 18 Q24 21.5 32 18" fill="none" stroke="#2e2e2e" stroke-width="1.05"/>
+  <path d="M0 21 Q8 18 16 21 Q24 24 32 21" fill="none" stroke="#292929" stroke-width="1.05"/>
+  <path d="M0 24 Q8 22 16 24 Q24 26 32 24" fill="none" stroke="#242424" stroke-width="1.05"/>
+  <path d="M0 27 Q8 25.5 16 27 Q24 28.5 32 27" fill="none" stroke="#1f1f1f" stroke-width="1.05"/>
+  <text x="7" y="22" font-family="Arial Black, sans-serif" font-weight="900" font-size="17" fill="#FFFFFF" letter-spacing="-0.5">R</text>
+  <text x="19.5" y="22" font-family="Arial Black, sans-serif" font-weight="900" font-size="17" fill="#FF4060">!</text>
 </svg>
