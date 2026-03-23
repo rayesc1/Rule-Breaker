@@ -5524,69 +5524,69 @@
           15
         ],
         "rules": [
-          "Contains 3 or more syllables",
+          "Starts and ends with a consonant",
           "Is a palindrome"
         ],
         "words": [
           {
-            "word": "SENATOR",
+            "word": "TRACK",
             "shouldAccept": true
           },
           {
-            "word": "PARTICULAR",
+            "word": "GRASP",
             "shouldAccept": true
           },
           {
-            "word": "GLIMPSE",
+            "word": "DOVE",
             "shouldAccept": false
           },
           {
-            "word": "BRUISED",
+            "word": "AMAZE",
             "shouldAccept": false
           },
           {
-            "word": "ORGANIZE",
+            "word": "SNARL",
             "shouldAccept": true
           },
           {
-            "word": "ISRAEL",
+            "word": "BARE",
             "shouldAccept": false
           },
           {
-            "word": "ANYMORE",
+            "word": "CLASP",
             "shouldAccept": true
           },
           {
-            "word": "VICTORY",
+            "word": "UNCLE",
+            "shouldAccept": false
+          },
+          {
+            "word": "GLUE",
+            "shouldAccept": false
+          },
+          {
+            "word": "ALONE",
+            "shouldAccept": false
+          },
+          {
+            "word": "STAMP",
             "shouldAccept": true
           },
           {
-            "word": "MILITARY",
+            "word": "SHOCK",
             "shouldAccept": true
           },
           {
-            "word": "TWELFTH",
+            "word": "GONE",
             "shouldAccept": false
           },
           {
-            "word": "KYLIE",
-            "shouldAccept": false
-          },
-          {
-            "word": "PLUTONIUM",
-            "shouldAccept": false
-          },
-          {
-            "word": "STRETCHED",
-            "shouldAccept": false
-          },
-          {
-            "word": "SCRIBE",
-            "shouldAccept": false
-          },
-          {
-            "word": "IMAGINE",
+            "word": "BRAND",
             "shouldAccept": true
+          },
+          {
+            "word": "HIDE",
+            "shouldAccept": false
           },
           {
             "word": "HONEY",
@@ -10156,7 +10156,7 @@
           },
           {
             "left": "OTTAWA",
-            "right": "ISRAEL",
+            "right": "ICELAND",
             "shouldAccept": false
           },
           {
@@ -17293,7 +17293,7 @@
             "shouldAccept": false
           },
           {
-            "left": "ISRAEL",
+            "left": "RUSSIA",
             "right": "CASHEW",
             "shouldAccept": false
           },
@@ -22412,7 +22412,7 @@
           },
           {
             "format": "pair",
-            "left": "ISRAEL",
+            "left": "BELGIUM",
             "right": "CHILE",
             "shouldAccept": true
           },
@@ -30776,7 +30776,7 @@
           },
           {
             "format": "single",
-            "word": "ISRAEL",
+            "word": "OMAN",
             "shouldAccept": true
           },
           {
@@ -38653,7 +38653,7 @@
             "shouldAccept": true
           },
           {
-            "word": "ISRAEL",
+            "word": "SCRIBE",
             "shouldAccept": true
           },
           {
