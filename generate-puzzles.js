@@ -107,14 +107,13 @@ const CATEGORY_POOL = {
     'HARRIER','GOSHAWK','MARTIN','SWALLOW','SKYLARK','WHEATEAR','REDSTART','WAXWING',
   ],
   color: [
-    'SCARLET','CRIMSON','AMBER','TEAL','INDIGO','VIOLET','MAROON','CORAL','COBALT',
-    'AZURE','JADE','EBONY','MAUVE','LILAC','PLUM','RUBY','COPPER','CYAN','MAGENTA',
-    'LAVENDER','FUCHSIA','SAFFRON','MUSTARD','KHAKI','TAUPE','SIENNA','OCHRE',
-    'VERMILION','GOLD','SILVER','BRONZE','CREAM','IVORY','OLIVE','ROSE','PERIWINKLE',
-    'CHARTREUSE','CERISE','TANGERINE','BUFF','FAWN','ECRU','UMBER','CARMINE',
-    'TURQUOISE','AQUAMARINE','CERULEAN','SEPIA','RUSSET','CLARET','DAMSON','AUBURN',
-    'CHESTNUT','HAZEL','FLAXEN','TAWNY','SLATE','PEWTER','GUNMETAL','CHARCOAL',
-    'ONYX','ALABASTER','LINEN','SAND','BISQUE','PEACH','APRICOT','BLUSH','PUCE',
+    'SCARLET','CRIMSON','TEAL','INDIGO','VIOLET','MAROON','AZURE','MAUVE',
+    'LILAC','CYAN','MAGENTA','LAVENDER','FUCHSIA','SAFFRON','MUSTARD','KHAKI',
+    'TAUPE','SIENNA','OCHRE','VERMILION','BRONZE','ROSE','PERIWINKLE',
+    'CHARTREUSE','CERISE','BUFF','FAWN','ECRU','UMBER','CARMINE',
+    'CERULEAN','SEPIA','RUSSET','CLARET','DAMSON','AUBURN',
+    'FLAXEN','TAWNY','SLATE','PEWTER','GUNMETAL','CHARCOAL',
+    'ALABASTER','LINEN','SAND','BISQUE','BLUSH','PUCE',
   ],
   sport: [
     'TENNIS','SOCCER','RUGBY','CRICKET','HOCKEY','BOXING','SKIING','SURFING','ROWING',
@@ -130,7 +129,7 @@ const CATEGORY_POOL = {
     'SHUTTLE','GLIDER','SCOOTER','MOPED','BICYCLE','SEDAN','COUPE','WAGON','JEEP',
     'GONDOLA','CATAMARAN','FRIGATE','SUBMARINE','HELICOPTER','BALLOON','MONORAIL',
     'TROLLEY','TANKER','DINGHY','TUGBOAT','TRAWLER','BIPLANE','SLED','SNOWMOBILE',
-    'UNICYCLE','TRICYCLE','MOTORBIKE','CARAVAN','MINIBUS','COACH','AMBULANCE',
+    'UNICYCLE','TRICYCLE','MOTORBIKE','CARAVAN','MINIBUS','AMBULANCE',
     'BULLDOZER','EXCAVATOR','FORKLIFT','TRACTOR','HARVESTER','SNOWPLOW','STEAMBOAT',
     'HOVERCRAFT','AIRSHIP','ZEPPELIN','SPACECRAFT','ROVER','FREIGHTER','DESTROYER',
     'CRUISER','BATTLESHIP','CARRIER','PADDLEBOAT','LANDER','CAPSULE',
@@ -188,21 +187,20 @@ const CATEGORY_POOL = {
   ],
   country: [
     'FRANCE','BRAZIL','CHINA','INDIA','JAPAN','EGYPT','GHANA','ITALY','SPAIN','CHILE',
-    'PERU','CUBA','IRAN','IRAQ','OMAN','FIJI','LAOS','MALI','TOGO','CHAD','NIGER',
-    'BENIN','KENYA','NEPAL','QATAR','WALES','SUDAN','SYRIA','LIBYA','HAITI','NAURU',
-    'PALAU','TONGA','SAMOA','ARUBA','GREECE','TURKEY','RUSSIA','POLAND','SWEDEN',
+    'PERU','CUBA','IRAN','IRAQ','OMAN','FIJI','LAOS','MALI','TOGO','CHAD',
+    'BENIN','KENYA','NEPAL','QATAR','SUDAN','SYRIA','LIBYA','HAITI','NAURU',
+    'PALAU','TONGA','SAMOA','GREECE','TURKEY','RUSSIA','POLAND','SWEDEN',
     'NORWAY','DENMARK','FINLAND','AUSTRIA','BELGIUM','IRELAND','PORTUGAL','HUNGARY',
-    'ROMANIA','UKRAINE','ISRAEL','JORDAN','KUWAIT','BAHRAIN','BHUTAN','MYANMAR',
-    'CAMBODIA','VIETNAM','THAILAND','MALAYSIA','SINGAPORE','INDONESIA','PHILIPPINES',
-    'TAIWAN','MONGOLIA','GEORGIA','ARMENIA','MOLDOVA','ALBANIA','SERBIA','CROATIA',
-    'SLOVENIA','ESTONIA','LATVIA','LITHUANIA','ICELAND','LUXEMBOURG','MALTA','CYPRUS',
-    'ANDORRA','MONACO','MALDIVES','SEYCHELLES','MAURITIUS','DJIBOUTI','ERITREA',
+    'ROMANIA','UKRAINE','ISRAEL','KUWAIT','BAHRAIN','BHUTAN','MYANMAR',
+    'CAMBODIA','VIETNAM','THAILAND','MALAYSIA','INDONESIA','PHILIPPINES',
+    'TAIWAN','MONGOLIA','ARMENIA','MOLDOVA','ALBANIA','SERBIA','CROATIA',
+    'SLOVENIA','ESTONIA','LATVIA','LITHUANIA','ICELAND','MALTA','CYPRUS',
+    'ANDORRA','MALDIVES','SEYCHELLES','MAURITIUS','ERITREA',
     'SOMALIA','RWANDA','BURUNDI','MALAWI','ZAMBIA','ZIMBABWE','BOTSWANA','NAMIBIA',
     'ANGOLA','GABON','CAMEROON','SENEGAL','GUINEA','LIBERIA',
   ],
   planet: [
-    'VENUS','EARTH','MARS','JUPITER','SATURN','URANUS','NEPTUNE','PLUTO',
-    'CERES','ERIS','HAUMEA','MAKEMAKE',
+    'MERCURY','VENUS','EARTH','MARS','JUPITER','SATURN','URANUS','NEPTUNE',
   ],
   number: [
     'ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN',
@@ -211,12 +209,11 @@ const CATEGORY_POOL = {
     'EIGHTY','NINETY','HUNDRED','THOUSAND','MILLION','BILLION',
   ],
   tree: [
-    'OAK','MAPLE','CEDAR','BIRCH','WILLOW','PINE','ASH','ELM','WALNUT','CHERRY',
-    'SPRUCE','FIR','YEW','BEECH','ALDER','ASPEN','HAZEL','HOLLY','LIME','HAWTHORN',
-    'ROWAN','ELDER','POPLAR','SYCAMORE','CHESTNUT','LAUREL','MAGNOLIA','CYPRESS',
+    'OAK','MAPLE','CEDAR','BIRCH','WILLOW','PINE','ASH','ELM',
+    'SPRUCE','FIR','YEW','BEECH','ALDER','ASPEN','HOLLY','LIME','HAWTHORN',
+    'ROWAN','ELDER','POPLAR','SYCAMORE','LAUREL','MAGNOLIA','CYPRESS',
     'REDWOOD','SEQUOIA','BAMBOO','BAOBAB','BANYAN','EBONY','MAHOGANY','TEAK','BALSA',
-    'ACACIA','EUCALYPTUS','JACARANDA','MIMOSA','MULBERRY','MYRTLE','OLIVE','PALM',
-    'PAPAYA','PECAN','LARCH','JUNIPER',
+    'ACACIA','EUCALYPTUS','JACARANDA','MIMOSA','MYRTLE','LARCH','JUNIPER',
   ],
   gemstone: [
     'RUBY','SAPPHIRE','EMERALD','DIAMOND','OPAL','TOPAZ','GARNET','AMBER','PEARL',
@@ -242,7 +239,7 @@ const CATEGORY_POOL = {
   ],
   genre: [
     'JAZZ','BLUES','SOUL','FUNK','PUNK','METAL','OPERA','DISCO','REGGAE','GOSPEL',
-    'TANGO','SALSA','SAMBA','WALTZ','POLKA','SWING','BEBOP','GRUNGE','TECHNO',
+    'TANGO','SAMBA','WALTZ','POLKA','SWING','BEBOP','GRUNGE','TECHNO',
     'HOUSE','TRANCE','AMBIENT','FOLK','COUNTRY','CLASSICAL','BAROQUE','ROMANTIC',
     'MOTOWN','RAGTIME','BLUEGRASS','ROCKABILLY','FLAMENCO','BOSSA','CUMBIA',
     'MERENGUE','CALYPSO','ZYDECO','AFROBEAT','QAWWALI',
@@ -261,7 +258,7 @@ const CATEGORY_POOL = {
     'HOZIER','JEWEL','KELIS','KESHA','KYLIE','LIZZO','LORDE','MADONNA','MAXWELL',
     'MOBY','MONICA','MYA','NORMANI','OMARION','PHARRELL','PINK','PRINCE','RIHANNA',
     'ROBYN','ROSALIA','SADE','SEAL','SELENA','SHAKIRA','SIA','SISQO','SOLANGE',
-    'STING','STROMAE','SZA','TINASHE','USHER','WEEKND','ZENDAYA',
+    'STING','STROMAE','SZA','TINASHE','USHER','WEEKND',
   ],
   rockband: [
     'AEROSMITH','AMERICA','ANTHRAX','BEATLES','BLONDIE','BLUR','BOSTON','CARS',
@@ -289,29 +286,29 @@ const CATEGORY_POOL = {
     'BAGHDAD','BAKU','BAMAKO','BANGKOK','BEIRUT','BELGRADE','BERLIN','BERN',
     'BISHKEK','BOGOTA','BRASILIA','BRATISLAVA','BRUSSELS','BUCHAREST','BUDAPEST',
     'CAIRO','CANBERRA','CARACAS','CHISINAU','CONAKRY','COPENHAGEN','DAKAR',
-    'DAMASCUS','DHAKA','DJIBOUTI','DOHA','DUBLIN','DUSHANBE','FREETOWN','GABORONE',
+    'DAMASCUS','DHAKA','DOHA','DUBLIN','DUSHANBE','FREETOWN','GABORONE',
     'HANOI','HARARE','HAVANA','HELSINKI','ISLAMABAD','JAKARTA','JERUSALEM','KABUL',
     'KAMPALA','KATHMANDU','KHARTOUM','KIGALI','KINGSTON','KINSHASA','KYIV','LIMA',
-    'LISBON','LJUBLJANA','LONDON','LUANDA','LUSAKA','LUXEMBOURG','MADRID','MANAGUA',
-    'MANILA','MINSK','MOGADISHU','MONACO','MONTEVIDEO','MOSCOW','MUSCAT','NAIROBI',
+    'LISBON','LJUBLJANA','LONDON','LUANDA','LUSAKA','MADRID','MANAGUA',
+    'MANILA','MINSK','MOGADISHU','MONTEVIDEO','MOSCOW','MUSCAT','NAIROBI',
     'NASSAU','NICOSIA','OSLO','OTTAWA','PARIS','PRAGUE','PRETORIA','PYONGYANG',
     'QUITO','RABAT','REYKJAVIK','RIGA','RIYADH','ROME','SANTIAGO','SARAJEVO',
-    'SEOUL','SINGAPORE','SKOPJE','SOFIA','STOCKHOLM','SUVA','TALLINN','TASHKENT',
+    'SEOUL','SKOPJE','SOFIA','STOCKHOLM','SUVA','TALLINN','TASHKENT',
     'TBILISI','TEHRAN','THIMPHU','TIRANA','TOKYO','TRIPOLI','TUNIS','ULAANBAATAR',
     'VADUZ','VALLETTA','VIENNA','VILNIUS','WARSAW','WELLINGTON','WINDHOEK',
     'YEREVAN','ZAGREB',
   ],
   river: [
     'AMAZON','COLUMBIA','CONGO','DANUBE','EUPHRATES','GANGES','HUDSON','INDUS',
-    'JORDAN','LENA','LOIRE','MEKONG','NIGER','NILE','ORINOCO','POTOMAC','RHINE',
+    'LENA','LOIRE','MEKONG','NILE','ORINOCO','POTOMAC','RHINE',
     'RHONE','SEINE','THAMES','TIBER','TIGRIS','VOLGA','YANGTZE','ZAMBEZI',
   ],
   president: [
     'ADAMS','ARTHUR','BIDEN','BUCHANAN','BUSH','CARTER','CLEVELAND','CLINTON',
-    'COOLIDGE','EISENHOWER','FILLMORE','FORD','GARFIELD','GRANT','HARDING',
+    'COOLIDGE','EISENHOWER','FILLMORE','FORD','GRANT','HARDING',
     'HARRISON','HAYES','HOOVER','JACKSON','JEFFERSON','JOHNSON','KENNEDY',
     'LINCOLN','MADISON','MCKINLEY','MONROE','NIXON','OBAMA','PIERCE','POLK',
-    'REAGAN','ROOSEVELT','TAFT','TAYLOR','TRUMAN','TRUMP','TYLER','WASHINGTON',
+    'REAGAN','ROOSEVELT','TAFT','TAYLOR','TRUMAN','TRUMP','TYLER',
     'WILSON',
   ],
   element: [
@@ -319,7 +316,7 @@ const CATEGORY_POOL = {
     'BISMUTH','BORON','BROMINE','CADMIUM','CALCIUM','CARBON','CERIUM','CESIUM',
     'CHLORINE','CHROMIUM','COBALT','COPPER','FLUORINE','FRANCIUM','GADOLINIUM',
     'GALLIUM','GERMANIUM','GOLD','HAFNIUM','HELIUM','HYDROGEN','IODINE','IRIDIUM',
-    'IRON','KRYPTON','LANTHANUM','LEAD','LITHIUM','MAGNESIUM','MANGANESE','MERCURY',
+    'IRON','KRYPTON','LANTHANUM','LEAD','LITHIUM','MAGNESIUM','MANGANESE',
     'MOLYBDENUM','NEON','NEPTUNIUM','NICKEL','NIOBIUM','NITROGEN','OSMIUM','OXYGEN',
     'PALLADIUM','PHOSPHORUS','PLATINUM','PLUTONIUM','POLONIUM','POTASSIUM','RADIUM',
     'RADON','RHENIUM','RHODIUM','RUBIDIUM','RUTHENIUM','SELENIUM','SILICON','SILVER',
@@ -330,8 +327,8 @@ const CATEGORY_POOL = {
   constellation: [
     'ANDROMEDA','AQUARIUS','AQUILA','ARIES','AURIGA','BOOTES','CANCER','CAPRICORNUS',
     'CASSIOPEIA','CENTAURUS','CEPHEUS','CETUS','CORVUS','CYGNUS','DRACO','ERIDANUS',
-    'GEMINI','HERCULES','HYDRA','LEO','LEPUS','LIBRA','LYRA','OPHIUCHUS','ORION',
-    'PEGASUS','PERSEUS','PHOENIX','PISCES','SAGITTARIUS','SCORPIUS','SERPENS',
+    'GEMINI','LEO','LEPUS','LIBRA','LYRA','OPHIUCHUS','ORION',
+    'PERSEUS','PISCES','SAGITTARIUS','SCORPIUS','SERPENS',
     'TAURUS','VIRGO',
   ],
 
@@ -399,14 +396,14 @@ const CATEGORY_POOL = {
     'SLEEPING BEAUTY','RAPUNZEL','GOLDILOCKS','HUMPTY DUMPTY','PINOCCHIO','ALICE',
     'DOROTHY','PETER PAN','MARY POPPINS','PETER RABBIT','PADDINGTON','WILLY WONKA',
     'WINNIE THE POOH','TINKER BELL','CAPTAIN HOOK','ROMEO','JULIET','HAMLET',
-    'MACBETH','ZEUS','HERCULES','ACHILLES','ODYSSEUS','MEDUSA','KING ARTHUR',
+    'MACBETH','ZEUS','ACHILLES','ODYSSEUS','KING ARTHUR',
     'MERLIN','ROBIN HOOD','SANTA CLAUS','SHERLOCK HOLMES','DRACULA','FRANKENSTEIN',
     'DON QUIXOTE','HUCKLEBERRY FINN','TOM SAWYER','OLIVER TWIST','ROBINSON CRUSOE',
     'MOBY DICK','SCARLETT OHARA','TARZAN','ZORRO','JAMES BOND','INDIANA JONES',
     'KING KONG','GODZILLA','DARTH VADER','LUKE SKYWALKER','PRINCESS LEIA','YODA',
     'JACK SPARROW','ROCKY BALBOA','RAMBO','TERMINATOR','HANNIBAL LECTER',
     'FORREST GUMP','CAPTAIN KIRK','SPOCK','HOMER SIMPSON','MICKEY MOUSE',
-    'DONALD DUCK','BUGS BUNNY','SCOOBY DOO','POPEYE','GARFIELD','SNOOPY',
+    'DONALD DUCK','BUGS BUNNY','SCOOBY DOO','POPEYE','SNOOPY',
     'CHARLIE BROWN','HARRY POTTER','FRODO','GANDALF','VOLDEMORT','DUMBLEDORE',
     'SHREK','ALADDIN','SIMBA','BUZZ LIGHTYEAR','BAMBI','BARBIE','MARIO','PIKACHU',
   ],
@@ -417,6 +414,92 @@ const CATEGORY_MAP = {};
 Object.entries(CATEGORY_POOL).forEach(([cat, words]) => {
   words.forEach(w => { CATEGORY_MAP[w] = cat; });
 });
+
+// ── Distractor pool ───────────────────────────────────────────────
+// Hard-false words chosen to feel plausible for each rule.
+// Every entry has been verified: not in any category pool, actually fails its rule.
+// Multi-word entries only appear for multi-word-friendly category rules.
+const DISTRACTOR_POOL = {
+  // VOWEL rules — no Y-containing words
+  S01: ['QUEUE','AUDIO','IDEA','AREA','IOTA','OBOE','AIDE','OCEAN','OZONE'],
+  S02: ['STRENGTH','SHRUNK','SCRAWL','BRUNT','BRANCH','SCRIPT'],
+  S06: ['OCEAN','ALIEN','AUDIO','UNITED','MAIDEN','COINED','OBLIGE','LADIES'],
+  S24: ['HOUR','HEIR','HONEST','HONOR','HERB','HUMBLE'],        // silent H — feel like vowel starts
+  S25: ['FLOW','SHOW','BELOW','SHADOW','HOLLOW','NARROW','MEADOW','FOLLOW'], // end in W, sound like vowel
+  S28: ['EQUATION','BEAUTIFUL','EVACUATE','ASSOCIATE','AQUEOUS'], // 4-5 vowels, look like 3
+  S53: ['QUEUE','LEAGUE','UNIQUE','OPAQUE','SEQUEL','SEQUIN','EQUINE','QUICHE'], // look like 2, aren't
+
+  // PATTERN rules
+  S03: ['REGAL','REPOT','STRAW','MINED','STRAP','SPORT','DEPOT'],  // near-palindromes, almost same start/end
+  S04: ['SPEED','TEETH','SLEEP','BOOTH','PROOF','BLOOD','MOON','DEEP','WOOL'], // hidden doubles
+  S11: ['BEACH','REACH','TEACH','ROACH','LUNCH','BUNCH','HUNCH','MUCH',       // CH/SH mimics doubling
+        'SUCH','RICH','EACH','ARCH','TORCH','MARCH','PORCH','PERCH'],
+
+  // LANGUAGE rules
+  S05: ['BLANK','FLASK','BLEND','PLANK','FRANK'],               // look like they hide a silent letter
+  S13: ['BLANK','CLAMP','FLANK','FRANK','CLOAK','BLOCK',        // contain letters N-Z players miss
+        'BRAND','CRAMP','NOUN','PLANK'],
+  S14: ['REGAL','REPOT','STRAW','STRAP','SPORT','RESIN','REMIX'], // near-palindromes
+  S31: ['SPORT','STORY','STRAP','SCORE','BLEND','PLANT','STONE', // look alphabetical, aren't
+        'DRIVE','BREAK','FRAME','GRIND','PLACE','PLAIN','PRICE',
+        'PRONE','PROSE','TRADE','TRACE','TRIBE','TRICK','SPADE'],
+  S54: ['STONE','STRIPE','THRONE','SCENE','BLADE','GRACE',       // start consonant, end silent E
+        'PRIME','CRUDE','BRAKE','FRAME'],
+  S56: ['CARPET','BASKET','WALLET','BUTTON','MARKET','CORNER',   // feel compound, aren't
+        'WINTER','BLANKET','PLANET','HELMET','JACKET','RACKET',
+        'BONNET','BUCKET','TABLET','MAGNET','GOBLET','LANTERN',
+        'MASTER','GARDEN','TENDER'],
+  S57: ['STRENGTH','THROUGH','THOUGHT','STRAIGHT','GLIMPSE',     // 1 syllable, look polysyllabic
+        'SCHEME','CLOTHES','SPRAWL','SQUELCH','BRUISED','CLEANSE',
+        'BREATHE','LAUNCH','BROUGHT','WOLVES','THRONE','TWELFTH',
+        'SCORCHED','DRENCHED','STRETCHED','WRENCHED'],
+
+  // WORLD rules — knowledge-based plausible near-misses
+  S15: ['FERAL','WILD','BEAST','PREY','HERD','VEAL','MARE','FOAL','BROOD','SPAWN','FLOCK'],
+  S16: ['BRIGHT','VIVID','PALE','PASTEL','MUTED','BOLD','LIGHT','DARK','RICH'],
+  S17: ['HIKING','FISHING','DANCING','YOGA','CHESS','SPRINT','DUEL','HUNT','CHASE','JOGGING'],
+  S18: ['ENGINE','TURBINE','RUDDER','ANCHOR','HULL','MAST','PROPELLER','CHASSIS','ESCALATOR'],
+  S19: ['RECIPE','CUISINE','FLAVOR','SAUCE','GRAVY','YEAST','PETAL','BARK','RESIN','SAP'],
+  S20: ['MELODY','RHYTHM','TEMPO','CHORD','SCALE','VERSE','CHORUS','TREBLE','BRIDGE','REFRAIN'],
+  S21: ['SEASON','CLIMATE','FORECAST','COLD','HOT','WARM','COOL','DUST','SMOKE','POLAR'],
+  S22: ['ATTITUDE','TEMPER','MOOD','SPIRIT','NATURE','VIBE','STRESS','TRAUMA','TENSION'],
+  S23: ['VEIN','NERVE','CELL','TISSUE','GLAND','PORE','TENDON','MARROW'],
+  S29: ['TIBET','KASHMIR','SIBERIA','CATALONIA','CORNWALL',      // regions that feel like countries
+        'BRITTANY','TUSCANY','PATAGONIA','ANATOLIA','CRIMEA','YORKSHIRE','ALSACE'],
+  S30: ['COMET','METEOR','NEBULA','PULSAR','QUASAR','ECLIPSE',   // space objects, not planets
+        'EUROPA','TRITON','COSMOS','ORBIT','SOLSTICE','EQUINOX'], // moons + space terms
+  S32: ['DOZEN','SCORE','GROSS','HALF','QUARTER','TRIPLE',       // quantitative but not number words
+        'DOUBLE','PRIME','DIGIT','ONCE','TWICE'],
+  S35: ['FERN','SHRUB','CACTUS','THISTLE','CLOVER','HEATHER','HEMP','REED','VINE','MOSS','WEED'],
+  S36: ['CHROME','CRYSTAL','MARBLE','GRANITE','STEEL','GLASS'],  // shiny/precious, not gemstones
+  S37: ['BEAST','FIEND','GOBLIN','ALIEN','BIGFOOT','YETI','SERPENT','DEMON','MONSTER','SPECTER'],
+  S38: ['CAPTAIN','MASTER','LEADER','ROOKIE','VETERAN','NOVICE','EXPERT','CHIEF','BOSS'],
+  S39: ['MELODY','TEMPO','RHYTHM','CHORD','BALLAD','ANTHEM','VERSE','CHORUS','REFRAIN','BRIDGE'],
+  S40: ['STOCK','BOND','COIN','CASH','CREDIT','TOKEN','BULLION','LEDGER','VAULT'],
+  S41: ['BOWIE','LENNON','JAGGER','COBAIN','HENDRIX','PRESLEY','SINATRA','MORRISON','CLAPTON'],
+  S42: ['STATIC','VOLTAGE','CHAOS','SHADOW','BOWIE','LENNON','JAGGER'],
+  S43: ['DAKOTA','CAROLINA','PORTLAND','RICHMOND','TERRITORY','DISTRICT','PROVINCE'],
+  S44: ['SYDNEY','TORONTO','ISTANBUL','MILAN','LAGOS','KARACHI','SHANGHAI','BARCELONA','MELBOURNE'],
+  S45: ['LAKE','DELTA','CANYON','GORGE','FJORD','STRAIT','GULF','RAPIDS','ESTUARY','LAGOON'],
+  S46: ['HAMILTON','BURR','CLAY','DEWEY','WEBSTER','CALHOUN',    // almost-presidents
+        'GORE','KERRY','FRANKLIN','EDISON','ARMSTRONG','COLUMBUS','ROCKEFELLER','CARNEGIE'],
+  S47: ['ACID','ALLOY','ISOTOPE','PLASMA','COMPOUND','CRYSTAL','PROTON','NEUTRON','ELECTRON'],
+  S48: ['NEBULA','GALAXY','NOVA','COMET','PULSAR','QUASAR',      // space terms, not constellations
+        'COSMOS','ECLIPSE','METEOR','SOLSTICE','EQUINOX','ZENITH','NADIR'],
+
+  // CULTURE rules — multi-word distractors included
+  S49: ['WINSTON CHURCHILL','NAPOLEON BONAPARTE','JULIUS CAESAR','ALBERT EINSTEIN',
+        'CHARLES DARWIN','SIGMUND FREUD','PABLO PICASSO','VINCENT VAN GOGH',
+        'MICHAEL JACKSON','ELVIS PRESLEY','KURT COBAIN','FREDDIE MERCURY'],
+  S50: ['NAPOLEON BONAPARTE','JULIUS CAESAR','ALEXANDER THE GREAT','GENGHIS KHAN',
+        'WINSTON CHURCHILL','ALBERT EINSTEIN','NIKOLA TESLA','NEIL ARMSTRONG',
+        'AMELIA EARHART','CHARLES DARWIN'],
+  S51: ['AMAZON RIVER','ARCTIC OCEAN','PACIFIC OCEAN','ATLANTIC OCEAN',
+        'MEDITERRANEAN SEA','MOUNT OLYMPUS','ISLE OF SKYE','LAKE VICTORIA','LAKE TITICACA'],
+  S52: ['KING HENRY','QUEEN VICTORIA','NAPOLEON','CLEOPATRA','JULIUS CAESAR',
+        'ALEXANDER HAMILTON','WILLIAM SHAKESPEARE','NIKOLA TESLA','ALBERT EINSTEIN',
+        'CHARLES DARWIN','ABRAHAM LINCOLN'],
+};
 
 // Categories containing multi-word entries — never used in computational rule pools
 const MULTIWORD_CATS = new Set(['actor','athlete','landmark','fictional']);
@@ -511,7 +594,7 @@ const SINGLE_RULES = [
   { id:'S56', label:'Is a compound word',                   family:'LANGUAGE', supergroup:'STRUCTURAL', check: w => COMPOUND_SET.has(w) },
   { id:'S57', label:'Contains 3 or more syllables',         family:'LANGUAGE', supergroup:'STRUCTURAL', check: w => SYLLABLE_SET.has(w) },
   // WORLD / KNOWLEDGE
-  { id:'S15', label:'Is a living thing',          family:'WORLD', supergroup:'KNOWLEDGE', check: w => CATEGORY_MAP[w]==='animal' },
+  { id:'S15', label:'Is an animal',                family:'WORLD', supergroup:'KNOWLEDGE', check: w => CATEGORY_MAP[w]==='animal' },
   { id:'S16', label:'Is a color',                 family:'WORLD', supergroup:'KNOWLEDGE', check: w => CATEGORY_MAP[w]==='color' },
   { id:'S17', label:'Is a sport',                 family:'WORLD', supergroup:'KNOWLEDGE', check: w => CATEGORY_MAP[w]==='sport' },
   { id:'S18', label:'Is a vehicle',               family:'WORLD', supergroup:'KNOWLEDGE', check: w => CATEGORY_MAP[w]==='vehicle' },
@@ -646,13 +729,27 @@ function buildSinglePhase(rule, count, rng, usedWords) {
   const trueCount  = half;
   const falseCount = count - half;
 
-  const trueWords  = pickN(truePool, trueCount, rng);
-  const falseWords = pickN(falsePool, falseCount, rng);
+  // ── Distractor logic: fill up to 50% of false slots from curated distractors ──
+  const distractorSlots = Math.floor(falseCount * 0.5);
+  const rawDistractors  = (DISTRACTOR_POOL[rule.id] || [])
+    .filter(w => !rule.check(w) && !usedWords.has(w));
+  const distractorWords = pickN(rawDistractors, distractorSlots, rng);
+  distractorWords.forEach(w => usedWords.add(w));
 
-  if (trueWords.length < trueCount || falseWords.length < falseCount) return null;
+  // Backfill remaining false slots from the broad pool (excluding used)
+  const backfillPool  = falsePool.filter(w => !usedWords.has(w));
+  const backfillCount = falseCount - distractorWords.length;
+  const backfillWords = pickN(backfillPool, backfillCount, rng);
 
-  trueWords.forEach(w  => usedWords.add(w));
-  falseWords.forEach(w => usedWords.add(w));
+  if (truePool.filter(w => !usedWords.has(w)).length < trueCount) return null;
+  const trueWords = pickN(truePool.filter(w => !usedWords.has(w)), trueCount, rng);
+  if (trueWords.length < trueCount) return null;
+  if (distractorWords.length + backfillWords.length < falseCount) return null;
+
+  trueWords.forEach(w   => usedWords.add(w));
+  backfillWords.forEach(w => usedWords.add(w));
+
+  const falseWords = [...distractorWords, ...backfillWords];
 
   return shuffle([
     ...trueWords.map(w  => ({ word: w, shouldAccept: true })),
@@ -667,9 +764,15 @@ function buildPairPhase(rule, count, rng, usedWords) {
 
   const pairCatMap = { 'P09':'animal', 'P10':'color' };
   const pairCat    = pairCatMap[rule.id];
-  const allWords   = pairCat
+
+  // P11 (ends with a vowel) and P12 (same number of vowels) must exclude Y-containing words
+  const PAIR_VOWEL_RULE_IDS = new Set(['P11','P12']);
+  const basePool = pairCat
     ? CATEGORY_POOL[pairCat]
     : getSingleWordPool();
+  const allWords = PAIR_VOWEL_RULE_IDS.has(rule.id)
+    ? basePool.filter(w => !w.includes('Y'))
+    : basePool;
 
   let truePairs  = [];
   let falsePairs = [];
@@ -721,12 +824,25 @@ function buildMixedPhase(rule, count, rng, usedWords) {
       ])]
     : broadSingle;
 
-  const trueWords  = pickN(truePool, half, rng);
-  const falseWords = pickN(falsePool, singleCount - half, rng);
-  if (trueWords.length < half || falseWords.length < singleCount - half) return null;
+  // ── Distractor logic: 50% of single false slots from distractors ──
+  const singleFalseCount  = singleCount - half;
+  const distractorSlots   = Math.floor(singleFalseCount * 0.5);
+  const rawDistractors    = (DISTRACTOR_POOL[rule.id] || [])
+    .filter(w => !rule.check(w) && !usedWords.has(w));
+  const distractorWords   = pickN(rawDistractors, distractorSlots, rng);
+  distractorWords.forEach(w => usedWords.add(w));
 
-  trueWords.forEach(w  => usedWords.add(w));
-  falseWords.forEach(w => usedWords.add(w));
+  const backfillPool  = falsePool.filter(w => !usedWords.has(w));
+  const backfillCount = singleFalseCount - distractorWords.length;
+  const backfillWords = pickN(backfillPool, backfillCount, rng);
+
+  const trueWords  = pickN(truePool.filter(w => !usedWords.has(w)), half, rng);
+  const falseWords = [...distractorWords, ...backfillWords];
+
+  if (trueWords.length < half || falseWords.length < singleFalseCount) return null;
+
+  trueWords.forEach(w   => usedWords.add(w));
+  backfillWords.forEach(w => usedWords.add(w));
 
   const singleItems = shuffle([
     ...trueWords.map(w  => ({ format:'single', word:w, shouldAccept:true })),
