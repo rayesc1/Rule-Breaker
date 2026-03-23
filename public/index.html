@@ -2,15 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0A0A0F" />
     <meta name="description" content="Rule Breaker — the daily word reaction game" />
     <title>Rule Breaker</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Google Fonts — preconnect + stylesheet loads font in parallel with JS,
+         faster than the @import that was previously inside RuleBreaker.jsx -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { background: #0A0A0F; }
     </style>
+
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
