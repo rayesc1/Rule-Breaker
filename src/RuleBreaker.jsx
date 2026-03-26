@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, Component } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 const MIN_DISPLAY_MS = 300;
-const PENALTY_MS     = 500;
+const PENALTY_MS     = 1000;
 const INVERSION_MS   = 2500;
 const ADVANCE_MS     = 200;
 const MAX_W          = "440px";
@@ -76,12 +76,6 @@ let _topoCtx    = null;
 let _topoRaf    = null;
 let _topoLastT  = null;
 
-// FIX: prefers-reduced-motion — skip animation entirely if user has requested it.
-// Draws a static dark background and returns without starting the RAF loop.
-function _prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 function topoStart(canvas) {
   if (_topoRaf) cancelAnimationFrame(_topoRaf);
   _topoCanvas = canvas;
@@ -92,22 +86,18 @@ function topoStart(canvas) {
     const dpr = window.devicePixelRatio || 1;
     const w   = window.innerWidth;
     const h   = window.innerHeight;
+    // Size the canvas buffer at physical pixel resolution
     _topoCanvas.width  = Math.round(w * dpr);
     _topoCanvas.height = Math.round(h * dpr);
+    // Scale CSS display back to logical pixels
     _topoCanvas.style.width  = w + "px";
     _topoCanvas.style.height = h + "px";
+    // Scale context so all draw calls use CSS pixel coordinates
     _topoCtx.scale(dpr, dpr);
   }
   resize();
   window.addEventListener("resize", resize);
   canvas._topoResize = resize;
-
-  // Respect prefers-reduced-motion — draw a static background, no animation
-  if (_prefersReducedMotion()) {
-    _topoCtx.fillStyle = "#0d0d0d";
-    _topoCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-    return;
-  }
 
   function draw(ts) {
     if (!_topoLastT) _topoLastT = ts;
@@ -189,13 +179,11 @@ function topoStop(canvas) {
 let _dotCanvas = null;
 let _dotCtx    = null;
 let _dotRaf    = null;
-let _dotLastT  = null; // FIX: track real delta time instead of hardcoded 0.016
 
 function dotStart(canvas) {
   if (_dotRaf) cancelAnimationFrame(_dotRaf);
   _dotCanvas = canvas;
   _dotCtx    = canvas.getContext("2d");
-  _dotLastT  = null;
 
   // Mouse tracking — raw position for glow
   const _mouse = { x: -9999, y: -9999 };
@@ -219,33 +207,20 @@ function dotStart(canvas) {
   window.addEventListener("resize", resize);
   canvas._dotResize = resize;
 
-  // Respect prefers-reduced-motion — draw a static background, no animation
-  if (_prefersReducedMotion()) {
-    _dotCtx.fillStyle = "#0d0d0d";
-    _dotCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-    return;
-  }
-
   function draw(ts) {
-    // FIX: use real delta time so color smoothing is frame-rate independent.
-    // Previously hardcoded 0.016 (assumes 60fps) — wrong on 120Hz or 30fps devices.
-    if (!_dotLastT) _dotLastT = ts;
-    const dt  = Math.min((ts - _dotLastT) / 1000, 0.05);
-    _dotLastT = ts;
-
     const t   = ts / 1000;
     const ctx = _dotCtx;
     const W   = window.innerWidth;
     const H   = window.innerHeight;
     const cx  = W / 2, cy = H / 2;
 
-    // Smooth color (shared _tc state) — use real dt, not hardcoded frame time
+    // Smooth color (shared _tc state)
     const spd = _tc.holding ? _tc.riseSpd : _tc.fallSpd;
-    const k   = Math.min(1, spd * dt);
+    const k   = Math.min(1, spd * 0.016);
     _tc.r += (_tc.tr - _tc.r) * k;
     _tc.g += (_tc.tg - _tc.g) * k;
     _tc.b += (_tc.tb - _tc.b) * k;
-    _tt.val = Math.max(0, _tt.val - dt * _tt.decay);
+    _tt.val = Math.max(0, _tt.val - 0.016 * _tt.decay);
 
     const cursorOnScreen = _mouse.x > 0 && _mouse.x < W && _mouse.y > 0 && _mouse.y < H;
 
@@ -337,6 +312,15 @@ function formatTime(ms) {
   const m = Math.floor(ms / 60000);
   const s = ((ms % 60000) / 1000).toFixed(1).padStart(4, "0");
   return `${m}:${s}`;
+}
+
+// Live game timer — tenths of a second, compact format
+function timerFormat(ms) {
+  if (!ms || ms <= 0) return "0:00.0";
+  const m  = Math.floor(ms / 60000);
+  const s  = Math.floor((ms % 60000) / 1000);
+  const t  = Math.floor((ms % 1000) / 100);
+  return `${m}:${String(s).padStart(2, "0")}.${t}`;
 }
 
 function getGrade(correct, total) {
@@ -527,23 +511,16 @@ function shuffleRoundItems(rd, prng) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Daily puzzle loader
 // Fetches today's puzzle from /puzzles.json by UTC day number.
-// FIX: throws a typed error if today's puzzle isn't in the file yet, instead
-// of silently falling back to Day 1 (which would serve stale content and hide
-// the operational problem of a missed batch generation deadline).
+// Falls back to day 1 if today's puzzle isn't in the file yet.
 // The seeded shuffle runs client-side so every player gets the same order.
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadDailyPuzzle() {
   const dayNumber = getUtcDayNumber();
   const prng      = makePrng(dayNumber);
   const res = await fetch("/puzzles.json");
-  if (!res.ok) throw new Error("fetch_failed");
+  if (!res.ok) throw new Error("fetch failed");
   const all = await res.json();
-  const raw = all[dayNumber];
-  if (!raw) {
-    const err = new Error("puzzle_not_found");
-    err.code = "puzzle_not_found";
-    throw err;
-  }
+  const raw = all[dayNumber] ?? all[1];
   return {
     ...raw,
     rounds: raw.rounds.map(rd => shuffleRoundItems(rd, prng)),
@@ -551,60 +528,20 @@ async function loadDailyPuzzle() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared share utility
-// FIX: extracted from ResultsScreen and AlreadyPlayedScreen to eliminate
-// duplication. Both screens use identical share text format.
-// ─────────────────────────────────────────────────────────────────────────────
-function buildShareText({ puzzleNumber, roundLines, totalCorrect, totalItems, totalTime, streak }) {
-  const streakPart = streak != null ? `  🔥${streak}` : "";
-  const lines = [
-    `RULE BREAKER! #${puzzleNumber}`,
-    "",
-    roundLines,
-    "",
-    `${totalCorrect}/${totalItems} · ${formatTime(totalTime)}${streakPart}`,
-    "rulebreaker.app",
-  ];
-  return lines.join("\n");
-}
-
-// FIX: clipboard fallback — if navigator.clipboard fails (some mobile browsers,
-// PWA modes, focus issues), fall back to the legacy execCommand approach.
-// Previously .catch(() => {}) swallowed failures with zero user feedback.
-function copyToClipboard(text, onSuccess) {
-  navigator.clipboard.writeText(text)
-    .then(onSuccess)
-    .catch(() => {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity  = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        onSuccess();
-      } catch {
-        // Last resort: nothing we can do silently — at least don't crash
-      }
-    });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Global styles
-// Font @import removed — Barlow Condensed is now loaded via <link> in
-// index.html, which starts the font fetch earlier (parallel with JS parsing
-// rather than after React renders). The rest of the styles are unchanged.
+// FIX 1: Moved into Shell so these rules are always present in the DOM.
+// Previously only injected inside IntroScreen — body color/background were
+// lost the moment IntroScreen unmounted, causing black text on all screens.
 // ─────────────────────────────────────────────────────────────────────────────
 const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body, #root { height: 100%; background: #0d0d0d; color: #FFFFFF; }
   body { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; overflow: hidden; }
   button { cursor: pointer; border: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; }
 
   @keyframes flashRed      { 0%,100%{background:transparent} 50%{background:rgba(255,64,96,0.18)} }
+  @keyframes penaltyPop    { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-16px) scale(0.85)} }
   @keyframes wordIn        { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
   @keyframes pulse         { 0%,100%{opacity:1} 50%{opacity:0.35} }
   @keyframes shake         { 0%{transform:translateX(0)} 18%{transform:translateX(-6px)} 36%{transform:translateX(5px)} 54%{transform:translateX(-4px)} 72%{transform:translateX(3px)} 100%{transform:translateX(0)} }
@@ -675,51 +612,6 @@ const STYLES = `
     .rb-title { font-size: 96px !important; letter-spacing: 0.04em !important; }
   }
 `;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Error boundary — catches render errors and shows a recovery screen instead
-// of a white blank page. Placed around the whole app in index.js.
-// ─────────────────────────────────────────────────────────────────────────────
-export class ErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{
-          height: "100dvh", background: "#0d0d0d", color: "#FFFFFF",
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          fontFamily: "'Barlow Condensed', sans-serif", textAlign: "center", padding: "24px",
-        }}>
-          <div style={{ fontSize: "clamp(32px,8vw,56px)", fontWeight: 700, lineHeight: 0.95, letterSpacing: "0.04em", marginBottom: "20px" }}>
-            RULE<br /><span style={{ color: "#FF4060" }}>BREAKER!</span>
-          </div>
-          <p style={{ color: "#888888", fontSize: "14px", lineHeight: 1.6, fontWeight: 600, marginBottom: "20px" }}>
-            Something went wrong.<br />Please refresh to continue.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: "14px 32px", background: "#FF4060", border: "none",
-              borderRadius: "4px", color: "#FFFFFF",
-              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
-              fontSize: "16px", letterSpacing: "0.1em", cursor: "pointer",
-            }}
-          >
-            REFRESH
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared UI
@@ -982,7 +874,7 @@ function RuleSwitchScreen({ newRule, progress}) {
 // the brief blank frame between words, keeping layout stable. wordKey on each
 // word span re-triggers the CSS wordIn animation for a clean fade-in.
 // ─────────────────────────────────────────────────────────────────────────────
-function GameScreen({ rd, rule, displayItem, wordKey, active, flash, correctFlash, progress, onAnswer, puzzleNumber }) {
+function GameScreen({ rd, rule, displayItem, wordKey, active, flash, correctFlash, penaltyFlash, elapsedMs, progress, onAnswer, puzzleNumber }) {
   // lastFmtRef remembers the previous item's format so the null frame between
   // words always renders the same box structure as what was just showing.
   // Without this, displayItem=null defaulted to "single", unmounting the pair
@@ -1018,14 +910,28 @@ function GameScreen({ rd, rule, displayItem, wordKey, active, flash, correctFlas
     <Shell flash={flash}>
       <div style={{ width: "100%", maxWidth: MAX_W, display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(12px,2vw,20px)" }}>
 
-        {/* Header row — round label left, daily number right */}
+        {/* Header row — round label left, live timer right */}
         <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(15px,2vw,17px)", color: "#FFFFFF", letterSpacing: "0.05em" }}>
             {rd.label}: <span style={{ color: "#FF4060" }}>{rd.name}</span>
           </span>
-          <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(15px,2vw,17px)", color: "#FFFFFF", letterSpacing: "0.02em" }}>
-            DAILY #{puzzleNumber}
-          </span>
+          {/* Timer with penalty flash overlaid */}
+          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+            <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(15px,2vw,17px)", color: penaltyFlash ? "#FF4060" : "#FFFFFF", letterSpacing: "0.04em", transition: "color 0.1s" }}>
+              {timerFormat(elapsedMs)}
+            </span>
+            {penaltyFlash && (
+              <span style={{
+                position: "absolute", right: 0, top: "-18px",
+                fontFamily: "'Barlow Condensed',sans-serif",
+                fontSize: "clamp(12px,1.6vw,14px)", fontWeight: 700,
+                color: "#FF4060", letterSpacing: "0.04em", whiteSpace: "nowrap",
+                animation: "penaltyPop 0.9s ease forwards", pointerEvents: "none",
+              }}>
+                +1.0s
+              </span>
+            )}
+          </div>
         </div>
 
         <ProgressBar value={progress} />
@@ -1108,9 +1014,9 @@ function gradeEmoji(correct, total) {
 }
 
 function ResultsScreen({ allResults, times, puzzle, stats }) {
-  const [copied,      setCopied]      = useState(false);
-  const [review,      setReview]      = useState(null);
-  const [leaderboard, setLeaderboard] = useState(null);
+  const [copied,          setCopied]          = useState(false);
+  const [review,          setReview]          = useState(null);
+  const [leaderboard,     setLeaderboard]     = useState(null);
 
   const totalCorrect = allResults.flat().filter(x => x.correct).length;
   const totalItems   = puzzle.rounds.reduce((a, r) => a + r.total, 0);
@@ -1119,27 +1025,30 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
 
   useEffect(() => {
     fetchDayStats(puzzle.day, totalTime).then(s => { if (s) setLeaderboard(s); });
-  }, []); // eslint-disable-line
+  }, []);
 
-  // FIX: buildShare extracted to shared utility — no more duplication with AlreadyPlayedScreen
-  function handleShare() {
-    const roundLines = puzzle.rounds.map((r, i) => {
+  function buildShare() {
+    const roundLine = puzzle.rounds.map((r, i) => {
       const res     = allResults[i] || [];
       const correct = res.filter(x => x.correct).length;
       return `R${i + 1}: ${gradeEmoji(correct, r.total)}`;
     }).join("  ");
-    const text = buildShareText({
-      puzzleNumber: puzzle.number,
-      roundLines,
-      totalCorrect,
-      totalItems,
-      totalTime,
-      streak: stats?.streak,
-    });
-    copyToClipboard(text, () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
+    const streakPart = stats ? `  🔥${stats.streak}` : "";
+    const lines = [
+      `RULE BREAKER! #${puzzle.number}`,
+      "",
+      roundLine,
+      "",
+      `${totalCorrect}/${totalItems} · ${formatTime(totalTime)}${streakPart}`,
+      "rulebreaker.app",
+    ];
+    return lines.join("\n");
+  }
+
+  function handleShare() {
+    navigator.clipboard.writeText(buildShare())
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); })
+      .catch(() => {});
   }
 
   return (
@@ -1247,40 +1156,34 @@ function ResultsScreen({ allResults, times, puzzle, stats }) {
             {copied ? "COPIED TO CLIPBOARD!" : "SHARE RESULTS"}
           </button>
 
-          {/* X + Feedback row — FIX: noopener noreferrer on external links */}
+          {/* X + Feedback row */}
           <div style={{ display: "flex", gap: "8px" }}>
-            <a
-              href="https://x.com/RuleBreakerApp"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => window.open("https://x.com/RuleBreakerApp", "_blank")}
               style={{
                 flex: 1, padding: "clamp(12px,2vw,16px)",
                 background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
                 borderRadius: "4px", color: "#FFFFFF",
                 fontFamily: "'Barlow Condensed',sans-serif",
                 fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em",
-                cursor: "pointer", textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
               }}
             >
               FOLLOW US
-            </a>
-            <a
-              href="https://forms.gle/tQwW6jpMS5vCThgh7"
-              target="_blank"
-              rel="noopener noreferrer"
+            </button>
+            <button
+              onClick={() => window.open("https://forms.gle/tQwW6jpMS5vCThgh7", "_blank")}
               style={{
                 flex: 1, padding: "clamp(12px,2vw,16px)",
                 background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
                 borderRadius: "4px", color: "#FFFFFF",
                 fontFamily: "'Barlow Condensed',sans-serif",
                 fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em",
-                cursor: "pointer", textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
               }}
             >
               FEEDBACK
-            </a>
+            </button>
           </div>
         </div>
 
@@ -1323,6 +1226,7 @@ function DefLine({ word, definitions, expanded }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ReviewModal({ roundIdx, results, onClose, puzzle }) {
   const rd = puzzle.rounds[roundIdx];
+  let currentPhase = 0;
   const correct = results.filter(x => x.correct).length;
 
   // definitions: { [WORD]: { loading, text, partOfSpeech } | "none" }
@@ -1330,19 +1234,11 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
   // expanded: set of words currently showing definition
   const [expanded, setExpanded] = useState(new Set());
 
-  // FIX: added AbortController timeout so "looking up…" doesn't hang forever
-  // if dictionaryapi.dev is slow or down.
   async function fetchDefinition(word) {
     if (definitions[word] || definitions[word] === "none") return;
     setDefinitions(prev => ({ ...prev, [word]: { loading: true } }));
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const res  = await fetch(
-        `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeout);
+      const res  = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
       const data = await res.json();
       if (!Array.isArray(data) || !data[0]) throw new Error("no entry");
       const meaning = data[0].meanings?.[0];
@@ -1351,7 +1247,6 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
       if (!def) throw new Error("no def");
       setDefinitions(prev => ({ ...prev, [word]: { loading: false, text: def, partOfSpeech: pos } }));
     } catch {
-      clearTimeout(timeout);
       setDefinitions(prev => ({ ...prev, [word]: "none" }));
     }
   }
@@ -1411,13 +1306,11 @@ function ReviewModal({ roundIdx, results, onClose, puzzle }) {
           <span style={{ fontSize: "clamp(11px,1.5vw,14px)", color: "#FF4060" }}>{rd.rules[0]}</span>
         </div>
 
-        {/* Word rows
-            FIX: currentPhase computed from index rather than mutated during render */}
+        {/* Word rows */}
         {results.map((r, i) => {
           const item = r.item;
           const inv  = rd.inversionPoints.includes(i);
-          // Compute phase from how many inversion points have been passed — no mutation
-          const currentPhase = rd.inversionPoints.filter(p => p <= i).length;
+          if (inv) currentPhase++;
           const fmt  = getItemFormat(rd, item);
           const isPair = fmt === "pair";
 
@@ -1533,7 +1426,7 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
     if (todayResult.time) {
       fetchDayStats(puzzle.day, todayResult.time).then(s => { if (s) setLeaderboard(s); });
     }
-  }, []); // eslint-disable-line
+  }, []);
 
   useEffect(() => {
     function tick() {
@@ -1548,23 +1441,27 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
     return () => clearInterval(id);
   }, []);
 
-  // FIX: buildShare extracted to shared utility — no more duplication with ResultsScreen
-  function handleShare() {
-    const roundLines = todayResult.rounds
+  function buildShare() {
+    const streakPart = stats ? `  🔥${stats.streak}` : "";
+    // Use stored per-round breakdown if available, otherwise fall back to overall emoji
+    const roundLine = todayResult.rounds
       ? todayResult.rounds.map((r, i) => `R${i + 1}: ${gradeEmoji(r.correct, r.total)}`).join("  ")
       : `${gradeEmoji(todayResult.correct, todayResult.total)} ${todayResult.grade}`;
-    const text = buildShareText({
-      puzzleNumber: puzzle.number,
-      roundLines,
-      totalCorrect: todayResult.correct,
-      totalItems:   todayResult.total,
-      totalTime:    todayResult.time,
-      streak:       stats?.streak,
-    });
-    copyToClipboard(text, () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
+    const lines = [
+      `RULE BREAKER! #${puzzle.number}`,
+      "",
+      roundLine,
+      "",
+      `${todayResult.correct}/${todayResult.total} · ${formatTime(todayResult.time)}${streakPart}`,
+      "rulebreaker.app",
+    ];
+    return lines.join("\n");
+  }
+
+  function handleShare() {
+    navigator.clipboard.writeText(buildShare())
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); })
+      .catch(() => {});
   }
 
   return (
@@ -1657,40 +1554,13 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
           }}>
             {copied ? "COPIED TO CLIPBOARD!" : "SHARE RESULTS"}
           </button>
-          {/* FIX: noopener noreferrer on external links */}
           <div style={{ display: "flex", gap: "8px" }}>
-            <a
-              href="https://x.com/RuleBreakerApp"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                flex: 1, padding: "clamp(12px,2vw,16px)",
-                background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: "4px", color: "#FFFFFF",
-                fontFamily: "'Barlow Condensed',sans-serif",
-                fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em",
-                cursor: "pointer", textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
+            <button onClick={() => window.open("https://x.com/RuleBreakerApp", "_blank")} style={{ flex: 1, padding: "clamp(12px,2vw,16px)", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "4px", color: "#FFFFFF", fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em", cursor: "pointer" }}>
               FOLLOW US
-            </a>
-            <a
-              href="https://forms.gle/tQwW6jpMS5vCThgh7"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                flex: 1, padding: "clamp(12px,2vw,16px)",
-                background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: "4px", color: "#FFFFFF",
-                fontFamily: "'Barlow Condensed',sans-serif",
-                fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em",
-                cursor: "pointer", textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
+            </button>
+            <button onClick={() => window.open("https://forms.gle/tQwW6jpMS5vCThgh7", "_blank")} style={{ flex: 1, padding: "clamp(12px,2vw,16px)", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "4px", color: "#FFFFFF", fontFamily: "'Barlow Condensed',sans-serif", fontSize: "clamp(11px,1.6vw,14px)", letterSpacing: "0.06em", cursor: "pointer" }}>
               FEEDBACK
-            </a>
+            </button>
           </div>
         </div>
 
@@ -1705,7 +1575,7 @@ function AlreadyPlayedScreen({ puzzle, stats }) {
 export default function RuleBreaker() {
   const [PUZZLE,      setPUZZLE]      = useState(null);
   const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null); // null | "fetch_failed" | "puzzle_not_found"
+  const [error,       setError]       = useState(false);
   const [stats,       setStats]       = useState(null);
   const [screen,      setScreen]      = useState("intro");
   const [round,       setRound]       = useState(0);
@@ -1715,6 +1585,8 @@ export default function RuleBreaker() {
   const [wordKey,     setWordKey]     = useState(0);
   const [flash,        setFlash]        = useState(null);
   const [correctFlash, setCorrectFlash] = useState(null); // 'accept' | 'break' | null
+  const [penaltyFlash, setPenaltyFlash] = useState(false); // shows +1.0s on wrong answer
+  const [elapsedMs,    setElapsedMs]    = useState(0);
   const [active,      setActive]      = useState(false);
   const [countdown,   setCountdown]   = useState(3);
   const [switchPct,   setSwitchPct]   = useState(0);
@@ -1724,6 +1596,21 @@ export default function RuleBreaker() {
   const startRef        = useRef(null);
   const animRef         = useRef(null);
   const loadingCanvasRef = useRef(null);
+  const clockRafRef      = useRef(null);
+
+  // Live clock — ticks only during gameplay, drives the timer display
+  useEffect(() => {
+    if (screen !== "game") {
+      if (clockRafRef.current) cancelAnimationFrame(clockRafRef.current);
+      return;
+    }
+    function tick() {
+      if (startRef.current) setElapsedMs(Date.now() - startRef.current);
+      clockRafRef.current = requestAnimationFrame(tick);
+    }
+    clockRafRef.current = requestAnimationFrame(tick);
+    return () => { if (clockRafRef.current) cancelAnimationFrame(clockRafRef.current); };
+  }, [screen]);
 
   // Loading screen background — dot grid on desktop, topology on mobile.
   useEffect(() => {
@@ -1738,9 +1625,7 @@ export default function RuleBreaker() {
     };
   }, []); // eslint-disable-line
 
-  // Fetch today's puzzle on mount, then check if already played.
-  // FIX: error is now typed — "puzzle_not_found" shows a different message
-  // than a generic network failure, instead of silently falling back to Day 1.
+  // Fetch today's puzzle on mount, then check if already played
   useEffect(() => {
     loadDailyPuzzle()
       .then(puzzle => {
@@ -1750,9 +1635,9 @@ export default function RuleBreaker() {
         setLoading(false);
         if (s.lastPlayedDay === puzzle.day) setScreen("already_played");
       })
-      .catch(err => {
+      .catch(() => {
         setLoading(false);
-        setError(err?.code === "puzzle_not_found" ? "puzzle_not_found" : "fetch_failed");
+        setError(true);
       });
   }, []);
 
@@ -1781,20 +1666,18 @@ export default function RuleBreaker() {
     if (next >= roundData.total) {
       const elapsed = Date.now() - startRef.current;
       if (r >= 2) {
-        // FIX (P0): side effects (recordResult, submitCompletion, setStats) moved
-        // OUT of the setTimes updater function. State updaters must be pure —
-        // React 18 Strict Mode intentionally calls them twice in development,
-        // which would have caused double Supabase submissions and double stat saves.
-        const finalTimes   = [...times];
-        finalTimes[r]      = elapsed;
-        const totalTime    = finalTimes.reduce((a, b) => a + b, 0);
-        const totalCorrect = latestResults.flat().filter(x => x.correct).length;
-        const totalItems   = PUZZLE.rounds.reduce((a, rd) => a + rd.total, 0);
-        const grade        = getOverallGrade(totalCorrect, totalItems);
-        const updated      = recordResult(PUZZLE.day, grade, totalTime, totalCorrect, totalItems, latestResults);
-        setStats(updated);
-        setTimes(finalTimes);
-        submitCompletion(PUZZLE.day, totalTime, totalCorrect);
+        // Final round — save grade, stats, submit to Supabase, then go to results
+        setTimes(prev => {
+          const finalTimes   = [...prev]; finalTimes[r] = elapsed;
+          const totalTime    = finalTimes.reduce((a, b) => a + b, 0);
+          const totalCorrect = latestResults.flat().filter(x => x.correct).length;
+          const totalItems   = PUZZLE.rounds.reduce((a, rd) => a + rd.total, 0);
+          const grade        = getOverallGrade(totalCorrect, totalItems);
+          const updated      = recordResult(PUZZLE.day, grade, totalTime, totalCorrect, totalItems, latestResults);
+          setStats(updated);
+          submitCompletion(PUZZLE.day, totalTime, totalCorrect);
+          return finalTimes;
+        });
         setScreen("results");
       } else {
         // End of round 1 or 2 — record time and advance to next round
@@ -1834,11 +1717,13 @@ export default function RuleBreaker() {
       setCorrectFlash(accepted ? "accept" : "break");
       setFlash(null);
     } else {
-      // Wrong — harsh topology snap + turbulence + card flash
+      // Wrong — harsh topology snap + turbulence + card flash + penalty indicator
       topoForceColor(255, 28, 52, 1600);
       topoTurb(0.85);
       setFlash("red");
       setCorrectFlash(null);
+      setPenaltyFlash(true);
+      setTimeout(() => setPenaltyFlash(false), 900);
     }
 
     const newResults = allResults.map(a => [...a]);
@@ -1852,10 +1737,6 @@ export default function RuleBreaker() {
   }
 
   // Rule reveal countdown
-  // Note: round/idx/PUZZLE/loadItem are intentionally excluded from deps.
-  // This effect only re-runs when the screen transitions TO "rule", at which
-  // point all captured values are current. Adding them to deps would cause
-  // spurious re-fires on unrelated state changes mid-game.
   useEffect(() => {
     if (screen !== "rule") return;
     setCountdown(3);
@@ -1874,9 +1755,6 @@ export default function RuleBreaker() {
   }, [screen]); // eslint-disable-line
 
   // Rule switch RAF progress bar
-  // Note: round/idx/PUZZLE/loadItem are intentionally excluded from deps —
-  // same reasoning as above. capturedR/capturedI snapshot the values at the
-  // moment the rule switch begins so the RAF closure stays consistent.
   useEffect(() => {
     if (screen !== "rule_switch") return;
     setSwitchPct(0);
@@ -1916,12 +1794,7 @@ export default function RuleBreaker() {
               <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: "clamp(32px,8vw,56px)", color: "#FFFFFF", lineHeight: 0.95, letterSpacing: "0.04em", marginBottom: "20px" }}>
                 RULE<br /><span style={{ color: "#FF4060" }}>BREAKER!</span>
               </div>
-              {/* FIX: two distinct error messages depending on error type */}
-              {error === "puzzle_not_found" ? (
-                <p style={{ color: "#888888", fontSize: "14px", lineHeight: 1.6, fontWeight: 600 }}>
-                  Today's puzzle isn't ready yet —<br />check back soon.
-                </p>
-              ) : error ? (
+              {error ? (
                 <p style={{ color: "#888888", fontSize: "14px", lineHeight: 1.6, fontWeight: 600 }}>
                   Unable to load today's puzzle —<br />please refresh or try again later.
                 </p>
@@ -1942,7 +1815,7 @@ export default function RuleBreaker() {
   if (screen === "round_intro")    return <RoundIntroScreen rd={rd} onReady={() => setScreen("rule")} />;
   if (screen === "rule")           return <RuleScreen rd={rd} rule={rule} countdown={countdown} />;
   if (screen === "rule_switch")    return <RuleSwitchScreen newRule={rd.rules[phase] ?? rd.rules[rd.rules.length - 1]} progress={switchPct} />;
-  if (screen === "game")           return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} correctFlash={correctFlash} progress={prog} onAnswer={handleAnswer} puzzleNumber={PUZZLE.number} />;
+  if (screen === "game")           return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} correctFlash={correctFlash} penaltyFlash={penaltyFlash} elapsedMs={elapsedMs} progress={prog} onAnswer={handleAnswer} puzzleNumber={PUZZLE.number} />;
   if (screen === "results")        return <ResultsScreen allResults={allResults} times={times} puzzle={PUZZLE} stats={stats} />;
   return null;
 }
