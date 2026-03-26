@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -1818,4 +1818,27 @@ export default function RuleBreaker() {
   if (screen === "game")           return <GameScreen rd={rd} rule={rule} displayItem={displayItem} wordKey={wordKey} active={active} flash={flash} correctFlash={correctFlash} penaltyFlash={penaltyFlash} elapsedMs={elapsedMs} progress={prog} onAnswer={handleAnswer} puzzleNumber={PUZZLE.number} />;
   if (screen === "results")        return <ResultsScreen allResults={allResults} times={times} puzzle={PUZZLE} stats={stats} />;
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error boundary — wraps the app in index.js to catch render errors gracefully
+// ─────────────────────────────────────────────────────────────────────────────
+export class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ height: "100dvh", background: "#0d0d0d", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "16px", fontFamily: "'Barlow Condensed', sans-serif", color: "#FFFFFF", textAlign: "center", padding: "24px" }}>
+          <div style={{ fontSize: "clamp(36px,8vw,56px)", lineHeight: 0.95 }}>
+            RULE<br /><span style={{ color: "#FF4060" }}>BREAKER!</span>
+          </div>
+          <p style={{ color: "#888888", fontSize: "16px", lineHeight: 1.6 }}>
+            Something went wrong.<br />Please refresh the page.
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
