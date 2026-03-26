@@ -1598,19 +1598,23 @@ export default function RuleBreaker() {
   const loadingCanvasRef = useRef(null);
   const clockRafRef      = useRef(null);
 
-  // Live clock — ticks only during gameplay, drives the timer display
+  // Live clock — ticks only during gameplay, drives the timer display.
+  // Shows cumulative time: all completed rounds + current round elapsed.
   useEffect(() => {
     if (screen !== "game") {
       if (clockRafRef.current) cancelAnimationFrame(clockRafRef.current);
       return;
     }
     function tick() {
-      if (startRef.current) setElapsedMs(Date.now() - startRef.current);
+      if (startRef.current) {
+        const prevRoundsMs = times.reduce((a, b) => a + b, 0);
+        setElapsedMs(prevRoundsMs + (Date.now() - startRef.current));
+      }
       clockRafRef.current = requestAnimationFrame(tick);
     }
     clockRafRef.current = requestAnimationFrame(tick);
     return () => { if (clockRafRef.current) cancelAnimationFrame(clockRafRef.current); };
-  }, [screen]);
+  }, [screen]); // eslint-disable-line
 
   // Loading screen background — dot grid on desktop, topology on mobile.
   useEffect(() => {
